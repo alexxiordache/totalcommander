@@ -106,7 +106,7 @@ void display_files() {
     for (int i = 0; i < n; i++) {
         // Asiguram ca 'date' este curatat de newline-ul adaugat de ctime (daca e cazul)
         char formatted_time[25];
-        strncpy(formatted_time, ctime(&files[i].date), sizeof(formatted_time) - 1);
+        strcpy(formatted_time, ctime(&files[i].date));
         formatted_time[24] = '\0';
         size_t len = strlen(formatted_time);
         if (len > 0 && formatted_time[0] == '\n') {
@@ -123,18 +123,14 @@ void display_files() {
 
 
 void construct_full_path(char *dest, const char *path, const char *filename) {
-    // Copiem calea de baza (ex: /home/user)
     strcpy(dest, path);
     dest[PATH_MAX_LEN - 1] = '\0';
-    
     // Verificam si adaugam separatorul de cale (daca lipseste)
     size_t len = strlen(dest);
     if (len > 0 && dest[len - 1] != '/' && dest[len - 1] != '\\') {
-        strncat(dest, "\\", PATH_MAX_LEN - len);
+        strcat(dest, "\\");
     }
-    
     // Adaugam numele fisierului
-    // strncat(dest, filename, PATH_MAX_LEN - strlen(dest));
     strcat(dest, filename);
 }
 
@@ -184,6 +180,25 @@ void create_folder(const char*path, const char *foldername) {
     }
 }
 
+void file_rename(const char* path, const char* old_filename, const char* new_filename) {
+    char old_full_path[PATH_MAX_LEN];
+    char new_full_path[PATH_MAX_LEN];
+    construct_full_path(old_full_path, path, old_filename);
+    construct_full_path(new_full_path, path, new_filename);
+    if(rename(old_full_path, new_full_path)) {
+        printf("ERROR: Failed to rename %s to %s in %s", old_filename, new_filename, path);
+    }
+    else {
+        for(int i = 0; i < n; i++)
+            if(!strcmp(files[i].name, old_filename))
+            {
+                strcpy(files[i].name, new_filename);
+                sort_files(last_sort_option, last_sort_order);
+                break;
+            }
+    }
+}
+
 long directory_size(char *path) {
     DIR *dir;
     struct dirent *entry;
@@ -210,8 +225,8 @@ long directory_size(char *path) {
     }
     else {
         closedir (dir);
-        perror ("");
-        return EXIT_FAILURE;
+        printf("Eroare la deschiderea directorului");
+        return 0;
     }
     closedir (dir);
     return size;
@@ -225,7 +240,7 @@ void save_with_metadata(const char *path) {
     // 1. Deschidem directorul
     dp = opendir(path);
     if (dp == NULL) {
-        perror("Eroare la deschiderea directorului");
+        printf("Eroare la deschiderea directorului %s", path);
         return;
     }
 
@@ -290,9 +305,10 @@ int main() {
     char path[PATH_MAX_LEN]="C:\\Users\\alex\\Documents\\c++\\Total Commander\\test";
     save_with_metadata(path);
     // sort_files("Nume", 0);
-    create_folder(path, "folder");
+    // create_folder(path, "folder");
     // bool found = false;
     // search("partial", path, found);
+    file_rename(path, "fisier.pdf", "ff2.txt");
     display_files();
 //     if ((dir = opendir (path)) != NULL) {
 //     while ((ent = readdir (dir)) != NULL) {

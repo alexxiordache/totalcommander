@@ -5,6 +5,7 @@
 #include <ctime>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <direct.h>
 
 const int PATH_MAX_LEN = 1024;
 
@@ -129,7 +130,7 @@ void construct_full_path(char *dest, const char *path, const char *filename) {
     // Verificam si adaugam separatorul de cale (daca lipseste)
     size_t len = strlen(dest);
     if (len > 0 && dest[len - 1] != '/' && dest[len - 1] != '\\') {
-        strncat(dest, "/", PATH_MAX_LEN - len);
+        strncat(dest, "\\", PATH_MAX_LEN - len);
     }
     
     // Adaugam numele fisierului
@@ -162,6 +163,26 @@ void create_file(const char *path, const char *filename) {
     }
 }
 
+void create_folder(const char*path, const char *foldername) {
+    char full_path[PATH_MAX_LEN];
+    struct stat dir_info;
+    construct_full_path(full_path, path, foldername);
+    if(!stat(full_path, &dir_info)) {
+        // Exista folder/fisier cu acest nume
+        printf("ERROR: %s already exists.", full_path);
+    }
+    if(_mkdir(full_path) == -1) {
+        printf("ERROR: %s creation failed.", full_path);
+    }
+    else {
+        strcpy(files[n].name, foldername);
+        files[n].date = time(NULL);
+        files[n].size = 0;
+        n++;
+        sort_files(last_sort_option, last_sort_order);
+
+    }
+}
 
 long directory_size(char *path) {
     DIR *dir;
@@ -269,7 +290,7 @@ int main() {
     char path[PATH_MAX_LEN]="C:\\Users\\alex\\Documents\\c++\\Total Commander\\test";
     save_with_metadata(path);
     // sort_files("Nume", 0);
-    create_file(path, "ff.txt");
+    create_folder(path, "folder");
     // bool found = false;
     // search("partial", path, found);
     display_files();

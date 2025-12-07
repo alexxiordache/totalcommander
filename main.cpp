@@ -4,6 +4,7 @@
 #include <cstring>
 #include <ctime>
 #include <sys/stat.h>
+#include <unistd.h>
 
 const int PATH_MAX_LEN = 1024;
 
@@ -138,17 +139,25 @@ void construct_full_path(char *dest, const char *path, const char *filename) {
 
 void create_file(const char *path, const char *filename) {
     char full_path[PATH_MAX_LEN];
+    struct stat file_info;
     construct_full_path(full_path, path, filename);
+    if (stat(full_path, &file_info) == 0) {
+        fprintf(stdout, "File %s already exists. Skipping creation to prevent overwrite.\n", filename);
+        return;
+    }
     FILE* file = fopen(full_path, "w");
     if(!file)
         printf("ERROR occured while creating %s", filename);
     else {
-        struct stat file_info;
         fclose(file);
-        stat(full_path, &file_info);
-        strcpy(files[++n].name, filename);
-        files[n].date = file_info.st_mtime;
-        files[n].size = (long) file_info.st_size;
+        if(stat(full_path, &file_info)) {
+            printf("ERROR occured while creating file %s", filename);
+            return ;
+        }
+        strcpy(files[n].name, filename);
+        files[n].date = time(NULL);
+        files[n].size = 0;
+        n++;
         sort_files(last_sort_option, last_sort_order);
     }
 }
@@ -261,6 +270,8 @@ int main() {
     save_with_metadata(path);
     // sort_files("Nume", 0);
     create_file(path, "ff.txt");
+    // bool found = false;
+    // search("partial", path, found);
     display_files();
 //     if ((dir = opendir (path)) != NULL) {
 //     while ((ent = readdir (dir)) != NULL) {

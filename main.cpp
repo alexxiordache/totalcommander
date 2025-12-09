@@ -9,7 +9,6 @@
 
 const int PATH_MAX_LEN = 1024;
 
-
 struct data{
     char name[PATH_MAX_LEN];
     time_t date;
@@ -18,6 +17,20 @@ struct data{
 
 int last_sort_order = 0, n;
 char last_sort_option[30]="Nume";
+
+void save_with_metadata(const char *path, data files[], int &n);
+
+void construct_full_path(char *dest, const char *path, const char *filename) {
+    strcpy(dest, path);
+    dest[PATH_MAX_LEN - 1] = '\0';
+    // Verificam si adaugam separatorul de cale (daca lipseste)
+    size_t len = strlen(dest);
+    if (len > 0 && dest[len - 1] != '/' && dest[len - 1] != '\\') {
+        strcat(dest, "\\");
+    }
+    // Adaugam numele fisierului
+    strcat(dest, filename);
+}
 
 char lower(char c) {
     if(c >= 'A' && c <= 'Z') return c + 32;
@@ -88,6 +101,76 @@ void sort_files(char option[], bool order) {
             } 
 }
 
+bool compare_strings_search(char a[], char b[]) {
+    // verifica daca inceputul a doua siruri (numele fisierelor) sunt aceleasi
+    int n = strlen(a);
+    if(strlen(b) < n)
+        n = strlen(b);
+    for(int i = 0; i < n; i++) {
+        if (lower(a[i]) != lower(b[i])) return 0;
+    }
+    return 1;
+}
+
+bool strings_search(char a[], char b[]) {
+    // cauta sirul b in sirul a
+    if(!a) return 0;
+    if(!b) return 0;
+    char c[PATH_MAX_LEN], d[PATH_MAX_LEN];
+    char sep[] = "~!@#$%^&()-_=+[]{};',. ";
+    strcpy(c,a);
+    strcpy(d,b);
+    for (int i = 0; c[i]; ++i) c[i] = lower(c[i]);
+    for (int i = 0; d[i]; ++i) d[i] = lower(d[i]);
+    // in cazul in care sirul cautat incepe cu separatori, acestia trebuie ignorati
+    int i = 0;
+    while (strchr(sep,d[i])) i++;
+    // in cazul in care sirul cautat se termina cu separatori, acestia trebuie ignorati
+    int j = strlen(d)-1;
+    while (strchr(sep,d[j])) d[j--] = 0;
+
+    if (strstr(c,d+i) == 0) return 0;
+    char *q = strstr(c,d+i);
+    char *p = strtok(c,sep);
+    while (p != 0) {
+        if (compare_strings_search(p,q)) return 1;
+        p = strtok(NULL,sep);
+    }
+    return 0;
+}
+
+void search(char a[], const char *path, bool &found) {
+    // cauta un fisier intr-un folder dat prin path
+    DIR *dp;
+    struct dirent *entry;
+    dp = opendir(path);
+    while ((entry = readdir(dp))) {
+        struct stat file_info;
+        char full_path[PATH_MAX_LEN];
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+        construct_full_path(full_path, path, entry->d_name);
+        if (stat(full_path, &file_info) == -1) {
+            printf("%s EROARE \n", entry->d_name);
+            continue;
+        }
+        // daca in acel folder se afla un alt folder, verificam daca fisierul cautat se afla in acesta
+        if (S_ISDIR(file_info.st_mode)) {
+            if (strings_search(entry->d_name, a)) {
+                 printf("%s \n", full_path);
+                 found = 1;
+            }
+            search(a, full_path, found);
+        } 
+        else if (strings_search(entry->d_name, a)) {
+            printf("%s \n", full_path);
+            found = 1;
+        }
+    }
+    closedir(dp);
+}
+
 
 void display_files() {
     if (n <= 0) {
@@ -121,18 +204,6 @@ void display_files() {
     printf("========================================================================================\n");
 }
 
-
-void construct_full_path(char *dest, const char *path, const char *filename) {
-    strcpy(dest, path);
-    dest[PATH_MAX_LEN - 1] = '\0';
-    // Verificam si adaugam separatorul de cale (daca lipseste)
-    size_t len = strlen(dest);
-    if (len > 0 && dest[len - 1] != '/' && dest[len - 1] != '\\') {
-        strcat(dest, "\\");
-    }
-    // Adaugam numele fisierului
-    strcat(dest, filename);
-}
 
 void create_file(const char *path, const char *filename) {
     char full_path[PATH_MAX_LEN];
@@ -179,6 +250,46 @@ void create_folder(const char*path, const char *foldername) {
 
     }
 }
+
+void file_delete(char* path, char* filename) {
+    char full_path[PATH_MAX_LEN];
+    struct stat file_info;
+    int n;
+    construct_full_path(full_path, path, filename);
+    if(stat(full_path, &file_info) == -1) {
+        printf("ERROR: File %s does not exist", filename);
+        return;
+    }
+    if(S_ISDIR(file_info.st_mode)) {
+        // trebuie facuta o recursie deoarece rmdir poate sterge doar foldere goale
+        data sub_files[1000];
+        char name[PATH_MAX_LEN];
+        save_with_metadata(full_path, sub_files, n);
+        for(int i = 0; i < n; i++) {
+            // strcpy(name, sub_files[i].name);
+            file_delete(full_path, sub_files[i].name);
+        }
+        if(_rmdir(full_path) == -1) {
+            printf("ERROR: %s creation failed.", full_path);
+        }
+    }
+    else {
+        if(remove(full_path)) {
+            printf("ERROR: Failed to delete %s", full_path);
+            return ;
+        }
+    }
+    for(int i = 0; i < n; i++) {
+        if(!strcmp(files[i].name, filename))
+        {
+            for(int j = i; j < n - 1; j++)
+                files[j] = files[j + 1];
+            n--;
+        }
+    }
+}
+
+
 
 void file_rename(const char* path, const char* old_filename, const char* new_filename) {
     char old_full_path[PATH_MAX_LEN];
@@ -233,7 +344,7 @@ long directory_size(char *path) {
 }
 
 
-void save_with_metadata(const char *path) {
+void save_with_metadata(const char *path, data files[], int &n) {
     DIR *dp;
     struct dirent *entry;
 
@@ -250,6 +361,7 @@ void save_with_metadata(const char *path) {
     // printf("----------------------------------------------------------------------------------------------------\n");
 
     // 2. Parcurgem intrarile directorului cu readdir()
+    n = 0;
     while ((entry = readdir(dp))) {
         struct stat file_info;
         char full_path[PATH_MAX_LEN];
@@ -278,38 +390,31 @@ void save_with_metadata(const char *path) {
         } else {
             size = (long)file_info.st_size;
             strcpy(type_str, "Fisier");
-        } 
-        // Formatarea timpului (Data Modificarii)
-        // ctime returneaza un string cu newline la final, asa ca il indepartam
-
-
-        // POSIBILA REFOLOSIRE
-        // strncpy(formatted_time, ctime(&file_info.st_mtime), sizeof(formatted_time) - 1);
-        // formatted_time[24] = '\0'; // Asiguram terminarea sirului
-        
+        }
         strcpy(files[n].name, entry->d_name);
         files[n].date = file_info.st_mtime;
         files[n].size = size;
         n++;
-    }
+    } 
     sort_files(last_sort_option, last_sort_order);
     printf("----------------------------------------------------------------------------------------------------\n");
     closedir(dp);
 }
 
 int main() {
-
     DIR *dir;
     struct dirent *ent;
-    int n = 0;
+    bool found = 0;
     char path[PATH_MAX_LEN]="C:\\Users\\alex\\Documents\\c++\\Total Commander\\test";
-    save_with_metadata(path);
+    save_with_metadata(path, files, n);
+    file_delete(path, "dir");
     // sort_files("Nume", 0);
-    // create_folder(path, "folder");
-    // bool found = false;
-    // search("partial", path, found);
-    file_rename(path, "fisier.pdf", "ff2.txt");
+    //create_file(path, "ff.txt");
     display_files();
+    // search("afa%$&",path, found);
+    // if (!found) {
+    //     printf("No items match your search.");
+    // }
 //     if ((dir = opendir (path)) != NULL) {
 //     while ((ent = readdir (dir)) != NULL) {
 //         strcpy(fisiere[n++], ent->d_name);

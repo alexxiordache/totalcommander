@@ -239,7 +239,7 @@ void create_folder(const char*path, const char *foldername) {
 void file_delete(char* path, char* filename) {
     char full_path[PATH_MAX_LEN];
     struct stat file_info;
-    int n;
+    int m;
     construct_full_path(full_path, path, filename);
     if(stat(full_path, &file_info) == -1) {
         printf("ERROR: File %s does not exist", filename);
@@ -247,13 +247,13 @@ void file_delete(char* path, char* filename) {
     }
     if(S_ISDIR(file_info.st_mode)) {
         // trebuie facuta o recursie deoarece rmdir poate sterge doar foldere goale
-        data sub_files[1000];
+        data* sub_files = new data[1000];
         char name[PATH_MAX_LEN];
-        save_with_metadata(full_path, sub_files, n);
-        for(int i = 0; i < n; i++) {
-            // strcpy(name, sub_files[i].name);
+        save_with_metadata(full_path, sub_files, m);
+        for(int i = 0; i < m; i++) {
             file_delete(full_path, sub_files[i].name);
         }
+        delete[] sub_files;
         if(_rmdir(full_path) == -1) {
             printf("ERROR: %s creation failed.", full_path);
         }

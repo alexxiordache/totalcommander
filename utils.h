@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <direct.h>
+#include <stdio.h>
 
 
 #ifdef __cplusplus
@@ -51,6 +52,8 @@ void create_file(const char *path, const char *filename);
 void create_folder(const char*path, const char *foldername);
 void file_delete(char* path, char* filename);
 void file_rename(const char* path, const char* old_filename, const char* new_filename);
+void copy(char* path, char* filename, char* dest_path);
+void move(char* path, char* filename, char* dest_path);
 
 // Searching
 bool compare_strings(const char a[], const char b[]);

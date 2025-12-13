@@ -295,6 +295,57 @@ void file_rename(const char* path, const char* old_filename, const char* new_fil
     }
 }
 
+void copy(char* path, char* filename, char* dest_path) {
+    char file_path[PATH_MAX_LEN];
+    char new_file_path[PATH_MAX_LEN];
+    struct stat file_info;
+    int m;
+    construct_full_path(file_path, path, filename);
+    construct_full_path(new_file_path, dest_path, filename);
+    if (stat(file_path, &file_info) != 0) {
+        printf("ERROR: Could not get status for %s\n", file_path);
+        return; 
+    }
+    if(S_ISDIR(file_info.st_mode)) {
+        create_folder(dest_path, filename);
+        data* sub_files = new data[1000];
+        save_with_metadata(file_path, sub_files, m);
+        for(int i = 0; i < m; i++) {
+            copy(file_path, sub_files[i].name, new_file_path);
+        }
+        delete[] sub_files;
+    }
+    else {
+        FILE *file, *dest_file;
+        char buffer[4096];
+        size_t bytes_read;
+        file = fopen(file_path, "rb");
+        if (file == NULL) {
+            printf("Error opening source file");
+            exit(1);
+        }
+        dest_file = fopen(new_file_path, "wb");
+        if (dest_file == NULL) {
+            printf("Error opening destination file");
+            exit(1);
+        }
+        while ((bytes_read = fread(buffer, 1, 4096, file)) > 0) {
+            if (fwrite(buffer, 1, bytes_read, dest_file) != bytes_read) {
+                printf("Error writing to destination file");
+                exit(1);
+            }
+        }
+        fclose(file);
+        fclose(dest_file);
+    }
+    
+}
+
+void move(char* path, char* filename, char* dest_path) {
+    copy(path, filename, dest_path);
+    file_delete(path, filename);
+}
+
 long directory_size(char *path) {
     DIR *dir;
     struct dirent *entry;

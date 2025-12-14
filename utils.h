@@ -10,7 +10,8 @@
 #include <unistd.h>
 #include <direct.h>
 #include <stdio.h>
-
+#include <SFML/Graphics.hpp>
+#include <windows.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,14 +24,14 @@ struct data{
     char name[PATH_MAX_LEN];
     time_t date;
     long size;
+    bool isDir;
 } ;
 
 // --- EXTERNAL GLOBAL VARIABLES (Declared here, Defined only once in utils.cpp) ---
-extern struct data files[MAX_FILES]; // Use struct data
+extern struct data files[MAX_FILES], files2[MAX_FILES]; // Use struct data
 extern int last_sort_order;
-extern int n;
+extern int n, n2;
 extern char last_sort_option[30];
-
 // --- FUNCTION PROTOTYPES (Declarations) ---
 
 // Utility
@@ -61,6 +62,7 @@ bool compare_strings_search(const char a[], const char b[]);
 bool strings_search(const char a[], const char b[]);
 void search(char a[], const char *path, bool &found); 
 void display_files();
+char* get_executable_directory();
 
 #ifdef __cplusplus
 }

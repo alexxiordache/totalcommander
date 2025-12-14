@@ -1,7 +1,7 @@
 #include "utils.h"
 
-struct data files[MAX_FILES];
-int n = 0; 
+struct data files[MAX_FILES], files2[MAX_FILES];
+int n = 0, n2 = 0; 
 int last_sort_order = 0;   
 char last_sort_option[30] = "Nume"; 
 
@@ -420,8 +420,10 @@ void save_with_metadata(const char *path, data files[], int &n) {
         // Determinarea tipului (Folder sau Fisier)
         char type_str[10];
         long size;
+        bool isDir = false;
         if (S_ISDIR(file_info.st_mode)) {
             size = directory_size(full_path);
+            isDir = true;
             strcpy(type_str, "[DIR]");
         } else {
             size = (long)file_info.st_size;
@@ -430,9 +432,40 @@ void save_with_metadata(const char *path, data files[], int &n) {
         strcpy(files[n].name, entry->d_name);
         files[n].date = file_info.st_mtime;
         files[n].size = size;
+        files[n].isDir = isDir;
+
         n++;
     } 
     sort_files(last_sort_option, last_sort_order);
     printf("----------------------------------------------------------------------------------------------------\n");
     closedir(dp);
+}
+
+char* get_executable_directory() {
+    char exe_path[PATH_MAX_LEN];
+    DWORD path_len_dw;
+    
+    // Obtinem calea absoluta a intregului executabil
+    path_len_dw = GetModuleFileNameA(NULL, exe_path, PATH_MAX_LEN);
+
+    if (path_len_dw == 0 || path_len_dw >= PATH_MAX_LEN) {
+        fprintf(stderr, "ERROR: Failed to get executable path. Length: %lu\n", (unsigned long)path_len_dw);
+        return NULL;
+    }
+    // Gasim ultimul separator (\)
+    char* last_slash = strrchr(exe_path, '\\');
+    if (last_slash != NULL) {
+        *last_slash = '\0';
+    } else {
+        // Daca nu gasim separator, executabilul este in root (ex: in "C:\")
+        exe_path[0] = '\0';
+    }
+    size_t dir_len = strlen(exe_path);
+    char* dir_path = (char*)malloc(dir_len + 1);
+    if (dir_path == NULL) {
+        fprintf(stderr, "ERROR: Memory allocation failed for executable directory path.\n");
+        return NULL;
+    }
+    strcpy(dir_path, exe_path);
+    return dir_path;
 }

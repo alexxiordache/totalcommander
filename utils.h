@@ -40,7 +40,7 @@ void construct_full_path(char *dest, const char *path, const char *filename);
 char lower(char c);
 
 // Array Management & Sorting
-void sort_files(char option[], bool order);
+void sort_files(char option[], bool order, struct data files[], int n);
 bool sort_compare(struct data file1, struct data file2, char option[]); // Use struct data
 
 // File/Path Utilities
@@ -49,19 +49,19 @@ long directory_size(char *path);
 
 // File/Folder I/O
 void save_with_metadata(const char *path, struct data files[], int &n); 
-void create_file(const char *path, const char *filename);
-void create_folder(const char*path, const char *foldername);
-void file_delete(char* path, char* filename);
-void file_rename(const char* path, const char* old_filename, const char* new_filename);
-void copy(char* path, char* filename, char* dest_path);
-void move(char* path, char* filename, char* dest_path);
+void create_file(const char *path, const char *filename, struct data files[], int &n);
+void create_folder(const char*path, const char *foldername, struct data files[], int &n);
+void file_delete(char* path, char* filename, struct data files[], int &n);
+void file_rename(const char* path, const char* old_filename, const char* new_filename, struct data files[], int &n);
+void copy(char* path, char* filename, char* dest_path, struct data files[], int &n);
+void move(char* path, char* filename, char* dest_path, struct data files[], int &n);
 
 // Searching
 bool compare_strings(const char a[], const char b[]);
 bool compare_strings_search(const char a[], const char b[]);
 bool strings_search(const char a[], const char b[]);
 void search(char a[], const char *path, bool &found); 
-void display_files();
+void display_files(struct data files[], int n);
 char* get_executable_directory();
 
 #ifdef __cplusplus

@@ -71,7 +71,7 @@ bool sort_compare(data file1, data file2, char option[]) {
         return file1.size < file2.size;
 }
 
-void sort_files(char option[], bool order) {
+void sort_files(char option[], bool order, data files[], int n) {
     // order - 1 -> descrescator / 0 -> crescator
     strcpy(last_sort_option, option);
     last_sort_order = order;
@@ -157,7 +157,7 @@ void search(char a[], const char *path, bool &found) {
 }
 
 
-void display_files() {
+void display_files(data files[], int n) {
     if (n <= 0) {
         printf("Nu exista inregistrari de afisat.\n");
         return;
@@ -190,7 +190,7 @@ void display_files() {
 }
 
 
-void create_file(const char *path, const char *filename) {
+void create_file(const char *path, const char *filename, data files[], int &n) {
     char full_path[PATH_MAX_LEN];
     struct stat file_info;
     construct_full_path(full_path, path, filename);
@@ -211,11 +211,11 @@ void create_file(const char *path, const char *filename) {
         files[n].date = time(NULL);
         files[n].size = 0;
         n++;
-        sort_files(last_sort_option, last_sort_order);
+        sort_files(last_sort_option, last_sort_order, files, n);
     }
 }
 
-void create_folder(const char*path, const char *foldername) {
+void create_folder(const char*path, const char *foldername, data files[], int &n) {
     char full_path[PATH_MAX_LEN];
     struct stat dir_info;
     construct_full_path(full_path, path, foldername);
@@ -231,12 +231,12 @@ void create_folder(const char*path, const char *foldername) {
         files[n].date = time(NULL);
         files[n].size = 0;
         n++;
-        sort_files(last_sort_option, last_sort_order);
+        sort_files(last_sort_option, last_sort_order, files, n);
 
     }
 }
 
-void file_delete(char* path, char* filename) {
+void file_delete(char* path, char* filename, data files[], int &n) {
     char full_path[PATH_MAX_LEN];
     struct stat file_info;
     int m;
@@ -251,7 +251,7 @@ void file_delete(char* path, char* filename) {
         char name[PATH_MAX_LEN];
         save_with_metadata(full_path, sub_files, m);
         for(int i = 0; i < m; i++) {
-            file_delete(full_path, sub_files[i].name);
+            file_delete(full_path, sub_files[i].name, files, n);
         }
         delete[] sub_files;
         if(_rmdir(full_path) == -1) {
@@ -276,7 +276,7 @@ void file_delete(char* path, char* filename) {
 
 
 
-void file_rename(const char* path, const char* old_filename, const char* new_filename) {
+void file_rename(const char* path, const char* old_filename, const char* new_filename, data files[], int &n) {
     char old_full_path[PATH_MAX_LEN];
     char new_full_path[PATH_MAX_LEN];
     construct_full_path(old_full_path, path, old_filename);
@@ -289,13 +289,13 @@ void file_rename(const char* path, const char* old_filename, const char* new_fil
             if(!strcmp(files[i].name, old_filename))
             {
                 strcpy(files[i].name, new_filename);
-                sort_files(last_sort_option, last_sort_order);
+                sort_files(last_sort_option, last_sort_order, files, n);
                 break;
             }
     }
 }
 
-void copy(char* path, char* filename, char* dest_path) {
+void copy(char* path, char* filename, char* dest_path, data dest_files[], int &n) {
     char file_path[PATH_MAX_LEN];
     char new_file_path[PATH_MAX_LEN];
     struct stat file_info;
@@ -307,11 +307,11 @@ void copy(char* path, char* filename, char* dest_path) {
         return; 
     }
     if(S_ISDIR(file_info.st_mode)) {
-        create_folder(dest_path, filename);
+        create_folder(dest_path, filename, files, n);
         data* sub_files = new data[1000];
         save_with_metadata(file_path, sub_files, m);
         for(int i = 0; i < m; i++) {
-            copy(file_path, sub_files[i].name, new_file_path);
+            copy(file_path, sub_files[i].name, new_file_path, files, n);
         }
         delete[] sub_files;
     }
@@ -335,15 +335,18 @@ void copy(char* path, char* filename, char* dest_path) {
                 exit(1);
             }
         }
+        save_with_metadata(dest_path, dest_files, n);
+        sort_files(last_sort_option, last_sort_order, dest_files, n);
         fclose(file);
         fclose(dest_file);
     }
-    
 }
 
-void move(char* path, char* filename, char* dest_path) {
-    copy(path, filename, dest_path);
-    file_delete(path, filename);
+void move(char* path, char* filename, char* dest_path, data files1[], int &n1, data files2[], int &n2) {
+    copy(path, filename, dest_path, files2, n2);
+    file_delete(path, filename, files1, n1);
+    sort_files(last_sort_option, last_sort_order, files1, n1);
+    sort_files(last_sort_option, last_sort_order, files2, n2);
 }
 
 long directory_size(char *path) {
@@ -436,8 +439,7 @@ void save_with_metadata(const char *path, data files[], int &n) {
 
         n++;
     } 
-    sort_files(last_sort_option, last_sort_order);
-    printf("----------------------------------------------------------------------------------------------------\n");
+    sort_files(last_sort_option, last_sort_order, files, n);
     closedir(dp);
 }
 

@@ -6,6 +6,43 @@ const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
 const unsigned int FONT_SIZE = 20;
 
+void setupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, sf::RectangleShape &button_shape) {
+    button_shape.setSize(sf::Vector2f(200, 50));
+    button_shape.setPosition(sf::Vector2f(x, y)); 
+    button_shape.setFillColor(sf::Color(40, 40, 40)); 
+    button_shape.setOutlineThickness(1.0f);
+    button_shape.setOutlineColor(sf::Color(100, 100, 100));
+
+    sf::Text button_text(font);
+    button_text.setFont(font); 
+    button_text.setCharacterSize(FONT_SIZE);
+    button_text.setString("Copy");
+    sf::FloatRect textBounds = button_text.getLocalBounds();
+    button_text.setPosition(sf::Vector2f(x + 75.0f, y + 15.0f));
+    window.draw(button_shape);
+    window.draw(button_text);
+}
+
+bool updateButton(const sf::Vector2f& mousePos, sf::RectangleShape button_shape, bool &isPressed)
+{
+    bool actionTriggered = false; 
+    if (button_shape.getGlobalBounds().contains(mousePos)) {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+            if (!isPressed) {
+                actionTriggered = true; 
+                isPressed = true; 
+            }
+        }
+        else {
+            isPressed = false;
+        }
+    }
+    else {
+        isPressed = false; 
+    }
+    return actionTriggered; 
+}
+
 
 void DrawPane(sf::RenderWindow& window, const sf::Font& font, const char* path_display, float x, float y, data files[]) {
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
@@ -64,6 +101,8 @@ int main() {
         fprintf(stderr, "Error loading font 'Segoe UI.ttf'! Ensure it is in the project root.\n");
         return 0;
     }
+    sf::RectangleShape button_shape;
+    bool isPressed = 0;
     while(window.isOpen()) {
         while (auto event = window.pollEvent())
         {
@@ -89,6 +128,11 @@ int main() {
             float left_pane_w = (WINDOW_W - 3 * PADDING) / 2.0f;
             DrawPane(window, font, documents_path, PADDING + left_pane_w + PADDING, PADDING, files2);
 
+            sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+            setupButton(window, font,  0,  WINDOW_H-50, button_shape);
+            if (updateButton( mousePos, button_shape, isPressed)) {
+                copy(documents_path,"de copiat",path, files, n);
+            }
             window.display();
         }
     }

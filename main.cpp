@@ -6,39 +6,44 @@ const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
 const unsigned int FONT_SIZE = 20;
 
-void setupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, sf::RectangleShape &button_shape) {
-    button_shape.setSize(sf::Vector2f(200, 50));
-    button_shape.setPosition(sf::Vector2f(x, y)); 
-    button_shape.setFillColor(sf::Color(40, 40, 40)); 
-    button_shape.setOutlineThickness(1.0f);
-    button_shape.setOutlineColor(sf::Color(100, 100, 100));
+struct button_data{
+    sf::RectangleShape shape;
+    std::string name;
+    bool isPressed;
+} button[10];
+
+void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
+    button.shape.setSize(sf::Vector2f(200, 50));
+    button.shape.setPosition(sf::Vector2f(x+200*i, y)); 
+    button.shape.setFillColor(sf::Color(40, 40, 40)); 
+    button.shape.setOutlineThickness(1.0f);
+    button.shape.setOutlineColor(sf::Color(100, 100, 100));
 
     sf::Text button_text(font);
     button_text.setFont(font); 
     button_text.setCharacterSize(FONT_SIZE);
-    button_text.setString("Copy");
+    button_text.setString(button.name);
     sf::FloatRect textBounds = button_text.getLocalBounds();
-    button_text.setPosition(sf::Vector2f(x + 75.0f, y + 15.0f));
-    window.draw(button_shape);
+    button_text.setPosition(sf::Vector2f(x + 200*i + 75.0f, y + 15.0f));
+    window.draw(button.shape);
     window.draw(button_text);
 }
 
-bool updateButton(const sf::Vector2f& mousePos, sf::RectangleShape button_shape, bool &isPressed)
-{
+bool UpdateButton(const sf::Vector2f& mousePos, button_data &button) {
     bool actionTriggered = false; 
-    if (button_shape.getGlobalBounds().contains(mousePos)) {
+    if (button.shape.getGlobalBounds().contains(mousePos)) {
         if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-            if (!isPressed) {
+            if (!button.isPressed) {
                 actionTriggered = true; 
-                isPressed = true; 
+                button.isPressed = true; 
             }
         }
         else {
-            isPressed = false;
+            button.isPressed = false;
         }
     }
     else {
-        isPressed = false; 
+        button.isPressed = false; 
     }
     return actionTriggered; 
 }
@@ -101,8 +106,10 @@ int main() {
         fprintf(stderr, "Error loading font 'Segoe UI.ttf'! Ensure it is in the project root.\n");
         return 0;
     }
-    sf::RectangleShape button_shape;
-    bool isPressed = 0;
+    button[1].name = "Copy";
+    button[2].name = "Move";
+    button[3].name = "NewFolder";
+    button[4].name = "Delete";
     while(window.isOpen()) {
         while (auto event = window.pollEvent())
         {
@@ -129,10 +136,16 @@ int main() {
             DrawPane(window, font, documents_path, PADDING + left_pane_w + PADDING, PADDING, files2);
 
             sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            setupButton(window, font,  0,  WINDOW_H-50, button_shape);
-            if (updateButton( mousePos, button_shape, isPressed)) {
-                copy(documents_path,"de copiat",path, files, n);
+            for (int i = 1;i <= 4;++i) {
+                SetupButton(window, font,  0,  WINDOW_H-50, button[i], i);
+                if (UpdateButton( mousePos, button[i])) {
+                    if (i == 1) copy(path, "de copiat", documents_path, files2, n2);
+                    else if (i == 2) move(path, "de copiat", documents_path, files, n, files2, n2);
+                    else if (i == 3) create_folder(path, "creat", files, n);
+                    else file_delete(path, "creat", files, n);
+                }
             }
+            
             window.display();
         }
     }

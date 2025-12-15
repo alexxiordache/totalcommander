@@ -27,15 +27,11 @@ struct data{
     bool isDir;
 } ;
 
-// --- EXTERNAL GLOBAL VARIABLES (Declared here, Defined only once in utils.cpp) ---
-extern struct data files[MAX_FILES], files2[MAX_FILES]; // Use struct data
+extern struct data files_left[MAX_FILES], files_right[MAX_FILES];
 extern int last_sort_order;
-extern int n, n2;
+extern int size_left, size_right;
 extern char last_sort_option[30];
-// --- FUNCTION PROTOTYPES (Declarations) ---
-
-// Utility
-time_t now(); // <--- ADDED MISSING PROTOTYPE
+// time_t now(); 
 void construct_full_path(char *dest, const char *path, const char *filename);
 char lower(char c);
 

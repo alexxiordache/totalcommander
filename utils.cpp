@@ -1,7 +1,7 @@
 #include "utils.h"
 
-struct data files[MAX_FILES], files2[MAX_FILES];
-int n = 0, n2 = 0; 
+struct data files_left[MAX_FILES], files_right[MAX_FILES];
+int size_left = 0, size_right = 0; 
 int last_sort_order = 0;   
 char last_sort_option[30] = "Nume"; 
 
@@ -307,11 +307,11 @@ void copy(char* path, char* filename, char* dest_path, data dest_files[], int &n
         return; 
     }
     if(S_ISDIR(file_info.st_mode)) {
-        create_folder(dest_path, filename, files, n);
+        create_folder(dest_path, filename, dest_files, n);
         data* sub_files = new data[1000];
         save_with_metadata(file_path, sub_files, m);
         for(int i = 0; i < m; i++) {
-            copy(file_path, sub_files[i].name, new_file_path, files, n);
+            copy(file_path, sub_files[i].name, new_file_path, sub_files, n); // am pus sub_files ca sa nu dea eroare, trebuie regandita
         }
         delete[] sub_files;
     }

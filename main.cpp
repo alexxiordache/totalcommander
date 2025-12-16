@@ -17,7 +17,12 @@ struct button_data{
 void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
     button.shape.setSize(sf::Vector2f(200, 50));
     button.shape.setPosition(sf::Vector2f(x+200*(i-1), y)); 
-    button.shape.setFillColor(sf::Color(40, 40, 40)); 
+    sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    bool isHovering = button.shape.getGlobalBounds().contains(mousePos);
+    if(isHovering) 
+        button.shape.setFillColor(sf::Color(224, 224, 224)); 
+    else 
+        button.shape.setFillColor(sf::Color(40, 40, 40)); 
     button.shape.setOutlineThickness(1.0f);
     button.shape.setOutlineColor(sf::Color(100, 100, 100));
 
@@ -25,6 +30,9 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     button_text.setFont(font); 
     button_text.setCharacterSize(FONT_SIZE);
     button_text.setString(button.name);
+    if(isHovering)
+        button_text.setFillColor(sf::Color::Black);
+    else button_text.setFillColor(sf::Color::White);
     sf::FloatRect textBounds = button_text.getLocalBounds();
     button_text.setPosition(sf::Vector2f(x + 200*(i-1) + 75.0f, y + 15.0f));
     window.draw(button.shape);
@@ -34,6 +42,7 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
 bool UpdateButton(const sf::Vector2f& mousePos, button_data &button) {
     bool actionTriggered = false; 
     if (button.shape.getGlobalBounds().contains(mousePos)) {
+        button.shape.setFillColor(sf::Color::Red);
         if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
             if (!button.isPressed) {
                 actionTriggered = true; 

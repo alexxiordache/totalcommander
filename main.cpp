@@ -16,7 +16,7 @@ struct button_data{
 
 void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
     button.shape.setSize(sf::Vector2f(200, 50));
-    button.shape.setPosition(sf::Vector2f(x+200*i, y)); 
+    button.shape.setPosition(sf::Vector2f(x+200*(i-1), y)); 
     button.shape.setFillColor(sf::Color(40, 40, 40)); 
     button.shape.setOutlineThickness(1.0f);
     button.shape.setOutlineColor(sf::Color(100, 100, 100));
@@ -26,7 +26,7 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     button_text.setCharacterSize(FONT_SIZE);
     button_text.setString(button.name);
     sf::FloatRect textBounds = button_text.getLocalBounds();
-    button_text.setPosition(sf::Vector2f(x + 200*i + 75.0f, y + 15.0f));
+    button_text.setPosition(sf::Vector2f(x + 200*(i-1) + 75.0f, y + 15.0f));
     window.draw(button.shape);
     window.draw(button_text);
 }
@@ -137,6 +137,7 @@ int main() {
     button[2].name = "Move";
     button[3].name = "NewFolder";
     button[4].name = "Delete";
+    button[5].name = "Rename";
     // Definirea parametrilor panourilor pentru logica de click
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
     const float LEFT_PANE_X = PADDING;
@@ -175,7 +176,7 @@ int main() {
                         if (clicked_index != -1) {
                             selected_index_left = clicked_index;
                             selected_index_right = -1; 
-                            printf("Selected Left: %s\n", files_left[selected_index_left].name);
+                            //printf("Selected Left: %s\n", files_left[selected_index_left].name);
                         }
                     }
                     
@@ -188,7 +189,7 @@ int main() {
                         if (clicked_index != -1) {
                             selected_index_right = clicked_index;
                             selected_index_left = -1;
-                            printf("Selected Right: %s\n", files_right[selected_index_right].name);
+                            //printf("Selected Right: %s\n", files_right[selected_index_right].name);
                         }
                     }
                 }
@@ -205,16 +206,53 @@ int main() {
             DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, selected_index_right);
 
             sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            for (int i = 1;i <= 4;++i) {
+            for (int i = 1;i <= 5;++i) {
                 SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
-                // if (UpdateButton( mousePos, button[i])) {
-                //     if (i == 1) copy(path, "de copiat", documents_path, files_right, size_right);
-                //     else if (i == 2) move(path, "de copiat", documents_path, files_left, size_left, files_right, size_right);
-                //     else if (i == 3) create_folder(path, "creat", files_left, size_left);
-                //     else file_delete(path, "creat", files_left, size_left);
-                // }
+                 if (UpdateButton( mousePos, button[i])) {
+
+                    // pentru cazul in care este selectat un fisier din panoul stang
+                    if (selected_index_left != -1 && selected_index_right == -1) {
+                        if (i == 1) copy(path, files_left[selected_index_left].name, documents_path, files_right, size_right);
+                        else if (i == 2) move(path, files_left[selected_index_left].name, documents_path, files_left, size_left, files_right, size_right);
+                        else if (i == 3) {
+                            char new_name[105];
+                            printf("Name: ");
+                            fgets(new_name, sizeof(new_name), stdin);
+                            new_name[strcspn(new_name, "\n")] = 0;
+                            create_folder(path, new_name, files_left, size_left);
+                        }
+                        else if (i == 4) file_delete(path, files_left[selected_index_left].name, files_left, size_left);
+                        else {
+                            char new_name[105];
+                            printf("Name: ");
+                            fgets(new_name, sizeof(new_name), stdin);
+                            new_name[strcspn(new_name, "\n")] = 0;
+                            file_rename(path, files_left[selected_index_left].name, new_name, files_left, size_left);
+                        }
+                    }
+                    
+                    // pentru cazul in care este selectat un fisier din panoul drept
+                    else if (selected_index_left == -1 && selected_index_right != -1){
+                        if (i == 1) copy(documents_path, files_right[selected_index_right].name, path, files_left, size_left);
+                        else if (i == 2) move(documents_path, files_right[selected_index_right].name, path, files_right, size_right, files_left, size_left);
+                        else if (i == 3) {
+                            char new_name[105];
+                            printf("Name: ");
+                            fgets(new_name, sizeof(new_name), stdin);
+                            new_name[strcspn(new_name, "\n")] = 0;
+                            create_folder(documents_path, new_name, files_right, size_right);
+                        }
+                        else if (i == 4) file_delete(documents_path, files_right[selected_index_right].name, files_right, size_right);
+                        else {
+                            char new_name[105];
+                            printf("Name: ");
+                            fgets(new_name, sizeof(new_name), stdin);
+                            new_name[strcspn(new_name, "\n")] = 0;
+                            file_rename(documents_path, files_right[selected_index_right].name, new_name, files_right, size_right); 
+                        }
+                    }
+                 }
             }
-            
             window.display();
         }
     }

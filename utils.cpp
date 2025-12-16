@@ -311,7 +311,7 @@ void copy(char* path, char* filename, char* dest_path, data dest_files[], int &n
         data* sub_files = new data[1000];
         save_with_metadata(file_path, sub_files, m);
         for(int i = 0; i < m; i++) {
-            copy(file_path, sub_files[i].name, new_file_path, sub_files, n); // am pus sub_files ca sa nu dea eroare, trebuie regandita
+            copy(file_path, sub_files[i].name, new_file_path, dest_files, n); // am pus sub_files ca sa nu dea eroare, trebuie regandita
         }
         delete[] sub_files;
     }
@@ -335,11 +335,12 @@ void copy(char* path, char* filename, char* dest_path, data dest_files[], int &n
                 exit(1);
             }
         }
-        save_with_metadata(dest_path, dest_files, n);
-        sort_files(last_sort_option, last_sort_order, dest_files, n);
+        
         fclose(file);
         fclose(dest_file);
     }
+    save_with_metadata(dest_path, dest_files, n);
+    sort_files(last_sort_option, last_sort_order, dest_files, n);
 }
 
 void move(char* path, char* filename, char* dest_path, data files1[], int &n1, data files2[], int &n2) {

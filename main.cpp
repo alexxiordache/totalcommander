@@ -5,7 +5,8 @@ const float WINDOW_H = 800.0f;
 const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
 const unsigned int FONT_SIZE = 20;
-int selected_index_left, selected_index_right;
+char icon_path[PATH_MAX_LEN];
+int selected_index_left = 0, selected_index_right = -1;
 sf::Font font;
 
 struct button_data{
@@ -82,8 +83,25 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
     const float LIST_START_Y = y + 5.0f + ITEM_HEIGHT + PADDING; 
     const float LIST_LEFT_X = x + 2.0f;
     const float LIST_ITEM_W = PANE_W - 4.0f;
+    char ext_path[PATH_MAX_LEN];
 
     for (int i = 0; i < size; ++i) { 
+        float item_y = LIST_START_Y + i * ITEM_HEIGHT;
+        char *ext = get_extension(files[i]);
+        if(!ext)
+            ext = strdup("directory");
+        strcpy(ext_path, icon_path);
+        strcat(ext, ".png");
+        strcat(ext_path, ext);
+        struct stat file_info;
+        if(stat(ext_path, &file_info)) { // file does not exist
+            strcpy(ext_path, icon_path);
+            strcat(ext_path, "default.png");
+        }
+
+        const sf::Texture texture(ext_path);
+        sf::RectangleShape icon_rect;
+        icon_rect.setSize(sf::Vector2f(16.0f, 16.0f));
         sf::Text item_text(font, files[i].name, FONT_SIZE);        
         if (files[i].isDir) {
             item_text.setFillColor(sf::Color(150, 150, 255)); 
@@ -93,15 +111,17 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         if (i == selected_index) {
             sf::RectangleShape highlight_bg;
             highlight_bg.setSize(sf::Vector2f(LIST_ITEM_W, ITEM_HEIGHT - PADDING));
-            highlight_bg.setPosition(sf::Vector2f(LIST_LEFT_X, LIST_START_Y + i * ITEM_HEIGHT - 5.0f));
+            highlight_bg.setPosition(sf::Vector2f(LIST_LEFT_X, item_y - 5.0f));
             highlight_bg.setFillColor(sf::Color(37, 150, 190, 100)); // Portocaliu transparent
             highlight_bg.setOutlineThickness(1.0f);
             highlight_bg.setOutlineColor(sf::Color(255, 128, 0, 255));
             window.draw(highlight_bg);
         }
-        item_text.setPosition(sf::Vector2f(x + 5.0f, y + 5.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
+        icon_rect.setPosition(sf::Vector2f(x + 5.0f, y + 10.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
+        icon_rect.setTexture(&texture);
+        item_text.setPosition(sf::Vector2f(x + 25.0f, y + 5.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
         item_text.setFillColor(sf::Color::Black); 
-
+        window.draw(icon_rect);
         window.draw(item_text);
     }
 }
@@ -130,6 +150,8 @@ int main() {
     strcpy(documents_path, user_profile);
     strcat(documents_path, temp);
     path = get_executable_directory();
+    strcpy(icon_path, path);
+    strcat(icon_path, "/icons/");
     _chdir(path);
     save_with_metadata(path, files_left, size_left);
     save_with_metadata(documents_path, files_right, size_right);
@@ -268,3 +290,4 @@ int main() {
 }
 
 // TODO: Adauga .. pt a te intoarce in folder-ul parinte
+// select cu mouse, tab, sageata sus, jos

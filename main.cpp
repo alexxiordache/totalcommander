@@ -6,8 +6,10 @@ const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
 const unsigned int FONT_SIZE = 20;
 char icon_path[PATH_MAX_LEN];
-int selected_index_left = 0, selected_index_right = -1;
+bool index_side = 0; // 0 - stanga, 1 - dreapta
+int selected_index[1000], selected_cnt;
 sf::Font font;
+std::set<int> idx;
 
 struct button_data{
     sf::RectangleShape shape;
@@ -61,7 +63,7 @@ bool UpdateButton(const sf::Vector2f& mousePos, button_data &button) {
 }
 
 
-void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float y, data files[], int size, int selected_index) {
+void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float y, data files[], int size, bool cur_side) {
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
     const float PANE_H = WINDOW_H - 2 * PADDING;
 
@@ -108,7 +110,7 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         } else {
             item_text.setFillColor(sf::Color::White); 
         }
-        if (i == selected_index) {
+        if (index_side == cur_side && idx.count(i)) {
             sf::RectangleShape highlight_bg;
             highlight_bg.setSize(sf::Vector2f(LIST_ITEM_W, ITEM_HEIGHT - PADDING));
             highlight_bg.setPosition(sf::Vector2f(LIST_LEFT_X, item_y - 5.0f));
@@ -192,22 +194,25 @@ int main() {
             }
 
             if (const auto *mouse_event = event->getIf<sf::Event::MouseButtonPressed>()) {
-                // const auto& mouse_event = event.get<sf::Event::MouseButtonPressed>();
                 if (mouse_event->button == sf::Mouse::Button::Left) {
                     float mouse_x = (float)mouse_event->position.x, mouse_y = (float)mouse_event->position.y;
                     
                     int clicked_index = -1;
-
+                    bool ctrlPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl);
                     // VERIFICARE PANOUL STANG
                     if (mouse_x >= LEFT_PANE_X && mouse_x < LEFT_PANE_X + PANE_W &&
                         mouse_y >= LEFT_PANE_Y && mouse_y < LEFT_PANE_Y + PANE_H) {
                         
                         clicked_index = GetClickedIndex(mouse_y, LEFT_PANE_Y, PANE_H, size_left);
-                        
+                        printf("%d\n", ctrlPressed);
                         if (clicked_index != -1) {
-                            selected_index_left = clicked_index;
-                            selected_index_right = -1; 
-                            //printf("Selected Left: %s\n", files_left[selected_index_left].name);
+                            if(index_side || !ctrlPressed) {
+                                idx.clear();
+                                index_side = 0;
+                            }
+                            if(!idx.count(clicked_index))
+                                idx.insert(clicked_index);
+                            else idx.erase(clicked_index);
                         }
                     }
                     
@@ -216,75 +221,100 @@ int main() {
                             mouse_y >= RIGHT_PANE_Y && mouse_y < RIGHT_PANE_Y + PANE_H) {
 
                         clicked_index = GetClickedIndex(mouse_y, RIGHT_PANE_Y, PANE_H, size_right);
-                        
                         if (clicked_index != -1) {
-                            selected_index_right = clicked_index;
-                            selected_index_left = -1;
-                            //printf("Selected Right: %s\n", files_right[selected_index_right].name);
+                            if(!index_side) {
+                                idx.clear();
+                                index_side = 1;
+                            }
+                            if(!idx.count(clicked_index))
+                                idx.insert(clicked_index);
+                            else idx.erase(clicked_index);
                         }
                     }
                 }
-                else if (mouse_event->button == sf::Mouse::Button::Right) {
-                    selected_index_left = selected_index_left;
-                }
+                // else if (mouse_event->button == sf::Mouse::Button::Right) {
+                    
+                // }
             }
             window.clear(sf::Color(30, 30, 30)); 
             
             // Deseneaza panoul stang
-            DrawPane(window, path, PADDING, PADDING, files_left, size_left, selected_index_left);
+            DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
 
             // Deseneaza panoul drept 
-            DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, selected_index_right);
+            DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
 
             sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+            int cnt = 0;
+            // int selected_index[1000];
+            // int temp_size = size_left;
+            // if(index_side == 1) 
+            //     temp_size = size_right;
+            // for(int i = 0; i < temp_size; i++)
+            //     if(idx[i])
+            //         selected_index[cnt++] = i;
             for (int i = 1;i <= 5;++i) {
                 SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
-                 if (UpdateButton( mousePos, button[i])) {
-
+                 if (UpdateButton(mousePos, button[i])) {
                     // pentru cazul in care este selectat un fisier din panoul stang
-                    if (selected_index_left != -1 && selected_index_right == -1) {
-                        if (i == 1) copy(path, files_left[selected_index_left].name, documents_path, files_right, size_right);
-                        else if (i == 2) move(path, files_left[selected_index_left].name, documents_path, files_left, size_left, files_right, size_right);
-                        else if (i == 3) {
+                    if (!index_side) {
+                        if (i == 3) {
                             char new_name[105];
                             printf("Name: ");
                             fgets(new_name, sizeof(new_name), stdin);
                             new_name[strcspn(new_name, "\n")] = 0;
                             create_folder(path, new_name, files_left, size_left);
+                            idx.clear();
+                            idx.insert(size_left - 1);
+                            continue;
                         }
-                        else if (i == 4) file_delete(path, files_left[selected_index_left].name, files_left, size_left);
-                        else {
-                            char new_name[105];
-                            printf("Name: ");
-                            fgets(new_name, sizeof(new_name), stdin);
-                            new_name[strcspn(new_name, "\n")] = 0;
-                            file_rename(path, files_left[selected_index_left].name, new_name, files_left, size_left);
+                        std::set<int>::iterator it;
+                        for (it = idx.begin(); it != idx.end(); it++) 
+                        for(int i = 0; i < cnt; i++)
+                            if (i == 1) copy(path, files_left[*it].name, documents_path, files_right, size_right);
+                            else if (i == 2) move(path, files_left[*it].name, documents_path, files_left, size_left, files_right, size_right);
+                            else if (i == 4) file_delete(path,files_left[*it].name, files_left, size_left);
+                            else {
+                                if(cnt > 1)
+                                    printf("Cannot rename more than one file.");
+                                else {
+                                    char new_name[105];
+                                    printf("Name: ");
+                                    fgets(new_name, sizeof(new_name), stdin);
+                                    new_name[strcspn(new_name, "\n")] = 0;
+                                    file_rename(path, files_right[*it].name, new_name, files_left, size_left);
+                                }
+                            }
                         }
-                    }
-                    
                     // pentru cazul in care este selectat un fisier din panoul drept
-                    else if (selected_index_left == -1 && selected_index_right != -1){
-                        if (i == 1) copy(documents_path, files_right[selected_index_right].name, path, files_left, size_left);
-                        else if (i == 2) move(documents_path, files_right[selected_index_right].name, path, files_right, size_right, files_left, size_left);
-                        else if (i == 3) {
+                    else if (index_side) {
+                        if (i == 3) {
                             char new_name[105];
                             printf("Name: ");
                             fgets(new_name, sizeof(new_name), stdin);
                             new_name[strcspn(new_name, "\n")] = 0;
                             create_folder(documents_path, new_name, files_right, size_right);
+                            idx.clear();
+                            idx.insert(size_right - 1);
+                            continue;
                         }
-                        else if (i == 4) file_delete(documents_path, files_right[selected_index_right].name, files_right, size_right);
-                        else {
-                            char new_name[105];
-                            printf("Name: ");
-                            fgets(new_name, sizeof(new_name), stdin);
-                            new_name[strcspn(new_name, "\n")] = 0;
-                            file_rename(documents_path, files_right[selected_index_right].name, new_name, files_right, size_right); 
+                        std::set<int>::iterator it;
+                        for (it = idx.begin(); it != idx.end(); it++) {
+                            if (i == 1) copy(documents_path, files_right[*it].name, path, files_left, size_left);
+                            else if (i == 2) move(documents_path, files_right[*it].name, path, files_right, size_right, files_left, size_left);
+                            else if (i == 4) file_delete(documents_path, files_right[*it].name, files_right, size_right);
+                            else {
+                                char new_name[105];
+                                printf("Name: ");
+                                fgets(new_name, sizeof(new_name), stdin);
+                                new_name[strcspn(new_name, "\n")] = 0;
+                                file_rename(documents_path, files_right[*it].name, new_name, files_right, size_right); 
+                            }
                         }
                     }
                  }
             }
-            window.display();
+        window.display();
         }
     }
 }

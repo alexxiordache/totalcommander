@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
 #include <windows.h>
+#include <set>
 
 #ifdef __cplusplus
 extern "C" {

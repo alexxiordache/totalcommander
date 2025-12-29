@@ -162,6 +162,7 @@ int main() {
     sf::VideoMode video_mode;
     video_mode.size = sf::Vector2u((unsigned int)WINDOW_W, (unsigned int)WINDOW_H);
     sf::RenderWindow window(video_mode, "My Commander", sf::Style::Close);
+    //window.setFramerateLimit(60);
     if (!font.openFromFile("Segoe UI.ttf")) { 
         fprintf(stderr, "Error loading font 'Segoe UI.ttf'! Ensure it is in the project root.\n");
         return 0;
@@ -236,6 +237,7 @@ int main() {
                     
                 // }
             }
+        }
             window.clear(sf::Color(30, 30, 30)); 
             
             // Deseneaza panoul stang
@@ -269,8 +271,8 @@ int main() {
                             continue;
                         }
                         std::set<int>::iterator it;
-                        for (it = idx.begin(); it != idx.end(); it++) 
-                        for(int i = 0; i < cnt; i++)
+                        for (it = idx.begin(); it != idx.end(); it++) {
+                        //for(int i = 0; i < cnt; i++)
                             if (i == 1) copy(path, files_left[*it].name, documents_path, files_right, size_right);
                             else if (i == 2) move(path, files_left[*it].name, documents_path, files_left, size_left, files_right, size_right);
                             else if (i == 4) file_delete(path,files_left[*it].name, files_left, size_left);
@@ -286,6 +288,7 @@ int main() {
                                 }
                             }
                         }
+                    }
                     // pentru cazul in care este selectat un fisier din panoul drept
                     else if (index_side) {
                         if (i == 3) {
@@ -317,7 +320,7 @@ int main() {
         window.display();
         }
     }
-}
+//}
 
 // TODO: Adauga .. pt a te intoarce in folder-ul parinte
 // select cu mouse, tab, sageata sus, jos

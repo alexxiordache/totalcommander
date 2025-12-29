@@ -4,6 +4,8 @@ struct data files_left[MAX_FILES], files_right[MAX_FILES];
 int size_left = 0, size_right = 0; 
 int last_sort_order = 0;   
 char last_sort_option[30] = "Nume"; 
+char left_history[MAX_HISTORY][PATH_MAX_LEN], right_history[MAX_HISTORY][PATH_MAX_LEN];
+int left_top = 0, right_top = 0;
 
 void construct_full_path(char *dest, const char *path, const char *filename) {
     strcpy(dest, path);
@@ -311,7 +313,7 @@ void copy(char* path, char* filename, char* dest_path, data dest_files[], int &n
         data* sub_files = new data[1000];
         save_with_metadata(file_path, sub_files, m);
         for(int i = 0; i < m; i++) {
-            copy(file_path, sub_files[i].name, new_file_path, dest_files, n); // am pus sub_files ca sa nu dea eroare, trebuie regandita
+            copy(file_path, sub_files[i].name, new_file_path, dest_files, n);
         }
         delete[] sub_files;
     }
@@ -471,4 +473,25 @@ char* get_executable_directory() {
     }
     strcpy(dir_path, exe_path);
     return dir_path;
+}
+
+void Navigate(char* current_path, const char* target_name, data files[], int& size) {
+    if (strcmp(target_name, "..") == 0) {
+        // Go Up: Find the last backslash and terminate the string there
+        char* last_slash = strrchr(current_path, '\\');
+        if (last_slash) {
+            *last_slash = '\0';
+        }
+        // Basic safety: If we erased everything, don't leave it empty (e.g., C:)
+        if (strlen(current_path) < 3) {
+            strcat(current_path, "\\");
+        }
+    } else {
+        // Go Down: Add backslash and the new folder name
+        strcat(current_path, "\\");
+        strcat(current_path, target_name);
+    }
+
+    // Refresh the file array using your existing utility function
+    save_with_metadata(current_path, files, size);
 }

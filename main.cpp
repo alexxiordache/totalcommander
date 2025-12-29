@@ -45,7 +45,6 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
 bool UpdateButton(const sf::Vector2f& mousePos, button_data &button) {
     bool actionTriggered = false; 
     if (button.shape.getGlobalBounds().contains(mousePos)) {
-        button.shape.setFillColor(sf::Color::Red);
         if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
             if (!button.isPressed) {
                 actionTriggered = true; 
@@ -179,9 +178,22 @@ int main() {
     const float RIGHT_PANE_X = PADDING + PANE_W + PADDING;
     const float RIGHT_PANE_Y = PADDING;
     const float PANE_H = WINDOW_H - 2 * PADDING;
+
+    std::string input = "";      
+    bool input_active = false;        
+    int active_action = 0;              // To remember if we are Renaming (5) or NewFolder (3)
+    char new_name[105];
+    int current_it;
+
+    sf::RectangleShape input_bar;
+    input_bar.setSize(sf::Vector2f(300.0f, 40.0f));
+    input_bar.setPosition(sf::Vector2f(0, WINDOW_H-90)); 
+    input_bar.setFillColor(sf::Color(220, 220, 220));
+    input_bar.setOutlineThickness(2.0f);
+    input_bar.setOutlineColor(sf::Color(40, 40, 40));
+
     while(window.isOpen()) {
-        while (auto event = window.pollEvent())
-        {
+        while (auto event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>())
                 window.close();
             
@@ -191,6 +203,20 @@ int main() {
                 }
                 if (keypressed->code == sf::Keyboard::Key::Tab) { 
                     printf("TAB pressed - switch pane logic required.\n");
+                }
+                if (keypressed->code == sf::Keyboard::Key::Backspace && !input_active) {
+                    if (index_side == 0 && left_top > 0) {
+                        left_top--;
+                        strcpy(path, left_history[left_top]);
+                        save_with_metadata(path, files_left, size_left);
+                        idx.clear();
+                    } 
+                    else if (index_side == 1 && right_top > 0) {
+                        right_top--;
+                        strcpy(documents_path, right_history[right_top]);
+                        save_with_metadata(documents_path, files_right, size_right);
+                        idx.clear();
+                    }
                 }
             }
 
@@ -202,34 +228,64 @@ int main() {
                     bool ctrlPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl);
                     // VERIFICARE PANOUL STANG
                     if (mouse_x >= LEFT_PANE_X && mouse_x < LEFT_PANE_X + PANE_W &&
-                        mouse_y >= LEFT_PANE_Y && mouse_y < LEFT_PANE_Y + PANE_H) {
-                        
+                        mouse_y >= LEFT_PANE_Y && mouse_y < LEFT_PANE_Y + PANE_H-40) {
+                        if (index_side != 0) {
+                            index_side = 0;
+                            idx.clear();
+                        }
                         clicked_index = GetClickedIndex(mouse_y, LEFT_PANE_Y, PANE_H, size_left);
                         printf("%d\n", ctrlPressed);
                         if (clicked_index != -1) {
-                            if(index_side || !ctrlPressed) {
-                                idx.clear();
-                                index_side = 0;
+                            if (index_side == 0 && idx.count(clicked_index)) {
+                                if (files_left[clicked_index].isDir) {
+                                    if (left_top < MAX_HISTORY) {
+                                        strcpy(left_history[left_top], path); 
+                                        left_top++;
+                                    }
+                                    Navigate(path, files_left[clicked_index].name, files_left, size_left);
+                                    idx.clear();
+                                }
                             }
-                            if(!idx.count(clicked_index))
-                                idx.insert(clicked_index);
-                            else idx.erase(clicked_index);
+                            else {
+                                if(index_side || !ctrlPressed) {
+                                    idx.clear();
+                                    index_side = 0;
+                                }
+                                if(!idx.count(clicked_index))
+                                    idx.insert(clicked_index);
+                                else idx.erase(clicked_index);
+                            }
                         }
                     }
                     
                     // VERIFICARE PANOUL DREPT
                     else if (mouse_x >= RIGHT_PANE_X && mouse_x < RIGHT_PANE_X + PANE_W &&
-                            mouse_y >= RIGHT_PANE_Y && mouse_y < RIGHT_PANE_Y + PANE_H) {
-
+                            mouse_y >= RIGHT_PANE_Y && mouse_y < RIGHT_PANE_Y + PANE_H-40) {
+                        if (index_side != 1) {
+                            index_side = 1;
+                            idx.clear();
+                        }
                         clicked_index = GetClickedIndex(mouse_y, RIGHT_PANE_Y, PANE_H, size_right);
                         if (clicked_index != -1) {
-                            if(!index_side) {
-                                idx.clear();
-                                index_side = 1;
+                            if (index_side == 1 && idx.count(clicked_index)) {
+                                if (files_right[clicked_index].isDir) {
+                                    if (right_top < MAX_HISTORY) {
+                                        strcpy(right_history[right_top], documents_path); 
+                                        right_top++;
+                                    }
+                                    Navigate(documents_path, files_right[clicked_index].name, files_right, size_right);
+                                    idx.clear();
+                                }
                             }
-                            if(!idx.count(clicked_index))
-                                idx.insert(clicked_index);
-                            else idx.erase(clicked_index);
+                            else {
+                                if(!index_side) {
+                                    idx.clear();
+                                    index_side = 1;
+                                }
+                                if(!idx.count(clicked_index))
+                                    idx.insert(clicked_index);
+                                else idx.erase(clicked_index);
+                            }
                         }
                     }
                 }
@@ -237,90 +293,132 @@ int main() {
                     
                 // }
             }
-        }
-            window.clear(sf::Color(30, 30, 30)); 
-            
-            // Deseneaza panoul stang
-            DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
-
-            // Deseneaza panoul drept 
-            DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
-
-            sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            int cnt = 0;
-            // int selected_index[1000];
-            // int temp_size = size_left;
-            // if(index_side == 1) 
-            //     temp_size = size_right;
-            // for(int i = 0; i < temp_size; i++)
-            //     if(idx[i])
-            //         selected_index[cnt++] = i;
-            for (int i = 1;i <= 5;++i) {
-                SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
-                 if (UpdateButton(mousePos, button[i])) {
-                    // pentru cazul in care este selectat un fisier din panoul stang
-                    if (!index_side) {
-                        if (i == 3) {
-                            char new_name[105];
-                            printf("Name: ");
-                            fgets(new_name, sizeof(new_name), stdin);
-                            new_name[strcspn(new_name, "\n")] = 0;
-                            create_folder(path, new_name, files_left, size_left);
-                            idx.clear();
-                            idx.insert(size_left - 1);
-                            continue;
-                        }
-                        std::set<int>::iterator it;
-                        for (it = idx.begin(); it != idx.end(); it++) {
-                        //for(int i = 0; i < cnt; i++)
-                            if (i == 1) copy(path, files_left[*it].name, documents_path, files_right, size_right);
-                            else if (i == 2) move(path, files_left[*it].name, documents_path, files_left, size_left, files_right, size_right);
-                            else if (i == 4) file_delete(path,files_left[*it].name, files_left, size_left);
-                            else {
-                                if(cnt > 1)
-                                    printf("Cannot rename more than one file.");
-                                else {
-                                    char new_name[105];
-                                    printf("Name: ");
-                                    fgets(new_name, sizeof(new_name), stdin);
-                                    new_name[strcspn(new_name, "\n")] = 0;
-                                    file_rename(path, files_right[*it].name, new_name, files_left, size_left);
-                                }
-                            }
-                        }
+            if (input_active) {
+                if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
+                    // backspace
+                    if (textEvent->unicode == 8) { 
+                        if (!input.empty()) input.pop_back();
                     }
-                    // pentru cazul in care este selectat un fisier din panoul drept
-                    else if (index_side) {
-                        if (i == 3) {
-                            char new_name[105];
-                            printf("Name: ");
-                            fgets(new_name, sizeof(new_name), stdin);
-                            new_name[strcspn(new_name, "\n")] = 0;
-                            create_folder(documents_path, new_name, files_right, size_right);
-                            idx.clear();
-                            idx.insert(size_right - 1);
-                            continue;
-                        }
-                        std::set<int>::iterator it;
-                        for (it = idx.begin(); it != idx.end(); it++) {
-                            if (i == 1) copy(documents_path, files_right[*it].name, path, files_left, size_left);
-                            else if (i == 2) move(documents_path, files_right[*it].name, path, files_right, size_right, files_left, size_left);
-                            else if (i == 4) file_delete(documents_path, files_right[*it].name, files_right, size_right);
-                            else {
-                                char new_name[105];
-                                printf("Name: ");
-                                fgets(new_name, sizeof(new_name), stdin);
-                                new_name[strcspn(new_name, "\n")] = 0;
-                                file_rename(documents_path, files_right[*it].name, new_name, files_right, size_right); 
+                    // enter
+                    else if (textEvent->unicode == 13) {
+                        input_active = false;
+                        strcpy(new_name,input.c_str());
+                        if (index_side) {
+                            if (active_action == 3) {
+                                create_folder(documents_path, new_name, files_right, size_right);
+                                idx.clear();
+                                idx.insert(size_right - 1);
                             }
+                            else if (active_action == 5) 
+                                file_rename(documents_path, files_right[current_it].name, new_name, files_right, size_right);
                         }
+                        else {
+                            if (active_action == 3) {
+                                create_folder(path, new_name, files_left, size_left);
+                                idx.clear();
+                                idx.insert(size_left - 1);
+                            }
+                            else if (active_action == 5) 
+                                file_rename(path, files_left[current_it].name, new_name, files_left, size_left);
+                        }
+                        input = "";
                     }
-                 }
+                        // restul caracterelor
+                    else if (textEvent->unicode < 128) {
+                        input += static_cast<char>(textEvent->unicode);
+                    }
+                }
             }
-        window.display();
         }
-    }
-//}
+        window.clear(sf::Color(30, 30, 30)); 
+            
+        // Deseneaza panoul stang
+        DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
 
-// TODO: Adauga .. pt a te intoarce in folder-ul parinte
+        // Deseneaza panoul drept 
+        DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
+
+        if (input_active) {
+            window.draw(input_bar);
+            sf::Text displayInput(font, input, FONT_SIZE);
+            displayInput.setPosition(sf::Vector2f(input_bar.getPosition().x + 5.0f, input_bar.getPosition().y + 5.0f));
+            displayInput.setFillColor(sf::Color::Black);
+
+            window.draw(displayInput);
+        }
+
+        sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+        int cnt = 0;
+        // int selected_index[1000];
+        // int temp_size = size_left;
+        // if(index_side == 1) 
+        //     temp_size = size_right;
+        // for(int i = 0; i < temp_size; i++)
+        //     if(idx[i])
+        //         selected_index[cnt++] = i;
+        for (int i = 1;i <= 5;++i) {
+            SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
+                if (UpdateButton(mousePos, button[i])) {
+                // pentru cazul in care este selectat un fisier din panoul stang
+                if (!index_side) {
+                    if (i == 3) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 3;
+                        continue;
+                    }
+                    std::set<int>::iterator it;
+                    for (it = idx.begin(); it != idx.end(); it++) {
+                    //for(int i = 0; i < cnt; i++)
+                        if (i == 1) copy(path, files_left[*it].name, documents_path, files_right, size_right);
+                        else if (i == 2) {
+                            move(path, files_left[*it].name, documents_path, files_left, size_left, files_right, size_right);
+                            save_with_metadata(path, files_left, size_left);
+                            save_with_metadata(documents_path, files_right, size_right);
+                        }
+                        else if (i == 4) file_delete(path,files_left[*it].name, files_left, size_left);
+                        else {
+                            if(cnt > 1)
+                                printf("Cannot rename more than one file.");
+                            else {
+                                input_active = true; 
+                                input = "";
+                                active_action = 5; 
+                                current_it = *it;
+                            }
+                        }
+                    }
+                }
+                // pentru cazul in care este selectat un fisier din panoul drept
+                else if (index_side) {
+                    if (i == 3) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 3;
+                        continue;
+                    }
+                    std::set<int>::iterator it;
+                    for (it = idx.begin(); it != idx.end(); it++) {
+                        if (i == 1) copy(documents_path, files_right[*it].name, path, files_left, size_left);
+                        else if (i == 2) {
+                            move(documents_path, files_right[*it].name, path, files_right, size_right, files_left, size_left);
+                            save_with_metadata(path, files_left, size_left);
+                            save_with_metadata(documents_path, files_right, size_right);
+                        }
+                        else if (i == 4) file_delete(documents_path, files_right[*it].name, files_right, size_right);
+                        else {
+                            input_active = true; 
+                            input = "";
+                            active_action = 5; 
+                            current_it = *it;
+                        }
+                    }
+                }
+            }
+        }
+        window.display();
+    }
+}
+
+// TODO: Adaugxa .. pt a te intoarce in folder-ul parinte
 // select cu mouse, tab, sageata sus, jos

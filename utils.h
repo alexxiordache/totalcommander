@@ -20,6 +20,7 @@ extern "C" {
 
 #define PATH_MAX_LEN 1024
 #define MAX_FILES 1000 
+#define MAX_HISTORY 100
 
 struct data{
     char name[PATH_MAX_LEN];
@@ -32,6 +33,8 @@ extern struct data files_left[MAX_FILES], files_right[MAX_FILES];
 extern int last_sort_order;
 extern int size_left, size_right;
 extern char last_sort_option[30];
+extern char left_history[MAX_HISTORY][PATH_MAX_LEN], right_history[MAX_HISTORY][PATH_MAX_LEN];
+extern int left_top, right_top;
 // time_t now(); 
 void construct_full_path(char *dest, const char *path, const char *filename);
 char lower(char c);
@@ -60,6 +63,7 @@ bool strings_search(const char a[], const char b[]);
 void search(char a[], const char *path, bool &found); 
 void display_files(struct data files[], int n);
 char* get_executable_directory();
+void Navigate(char* current_path, const char* target_name, struct data files[], int& size);
 
 #ifdef __cplusplus
 }

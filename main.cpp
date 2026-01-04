@@ -7,9 +7,10 @@ const float ITEM_HEIGHT = 30.0f;
 const unsigned int FONT_SIZE = 20;
 char icon_path[PATH_MAX_LEN];
 bool index_side = 0; // 0 - stanga, 1 - dreapta
-int selected_index[1000], selected_cnt;
 sf::Font font;
 std::set<int> idx;
+bool isDragging;
+float start_x, start_y, end_x, end_y;
 
 struct button_data{
     sf::RectangleShape shape;
@@ -113,9 +114,9 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
             sf::RectangleShape highlight_bg;
             highlight_bg.setSize(sf::Vector2f(LIST_ITEM_W, ITEM_HEIGHT - PADDING));
             highlight_bg.setPosition(sf::Vector2f(LIST_LEFT_X, item_y - 5.0f));
-            highlight_bg.setFillColor(sf::Color(37, 150, 190, 100)); // Portocaliu transparent
+            highlight_bg.setFillColor(sf::Color(37, 150, 190, 100));
             highlight_bg.setOutlineThickness(1.0f);
-            highlight_bg.setOutlineColor(sf::Color(255, 128, 0, 255));
+            highlight_bg.setOutlineColor(sf::Color(0, 0, 0));
             window.draw(highlight_bg);
         }
         icon_rect.setPosition(sf::Vector2f(x + 5.0f, y + 10.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
@@ -134,7 +135,7 @@ int GetClickedIndex(float mouse_y, float pane_y, float pane_h, int size) {
     int index = (int)(offset_y / ITEM_HEIGHT);
     if (index >= 0 && index < size && mouse_y < pane_y + pane_h)
         return index;
-    return -1;
+    return -2;
 }
 
 int main() {
@@ -223,6 +224,14 @@ int main() {
             if (const auto *mouse_event = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouse_event->button == sf::Mouse::Button::Left) {
                     float mouse_x = (float)mouse_event->position.x, mouse_y = (float)mouse_event->position.y;
+                    if(!isDragging)
+                    {
+                        isDragging = true;
+                        start_x = mouse_x;
+                        start_y = mouse_y;
+                    }
+                    end_x = mouse_x;
+                    end_y = mouse_y;
                     
                     int clicked_index = -1;
                     bool ctrlPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl);
@@ -234,10 +243,11 @@ int main() {
                             idx.clear();
                         }
                         clicked_index = GetClickedIndex(mouse_y, LEFT_PANE_Y, PANE_H, size_left);
-                        printf("%d\n", ctrlPressed);
-                        if (clicked_index != -1) {
+                        if (clicked_index >= 0) {
                             if (index_side == 0 && idx.count(clicked_index)) {
-                                if (files_left[clicked_index].isDir) {
+                                if(ctrlPressed) 
+                                    idx.erase(clicked_index);
+                                else if (files_left[clicked_index].isDir) {
                                     if (left_top < MAX_HISTORY) {
                                         strcpy(left_history[left_top], path); 
                                         left_top++;
@@ -256,6 +266,10 @@ int main() {
                                 else idx.erase(clicked_index);
                             }
                         }
+                        else {
+                            idx.clear();
+                            index_side = 0;
+                        }
                     }
                     
                     // VERIFICARE PANOUL DREPT
@@ -266,9 +280,11 @@ int main() {
                             idx.clear();
                         }
                         clicked_index = GetClickedIndex(mouse_y, RIGHT_PANE_Y, PANE_H, size_right);
-                        if (clicked_index != -1) {
+                        if (clicked_index >= 0) {
                             if (index_side == 1 && idx.count(clicked_index)) {
-                                if (files_right[clicked_index].isDir) {
+                                if(ctrlPressed) 
+                                    idx.erase(clicked_index);
+                                else if (files_right[clicked_index].isDir) {
                                     if (right_top < MAX_HISTORY) {
                                         strcpy(right_history[right_top], documents_path); 
                                         right_top++;
@@ -278,7 +294,7 @@ int main() {
                                 }
                             }
                             else {
-                                if(!index_side) {
+                                if(!index_side || !ctrlPressed) {
                                     idx.clear();
                                     index_side = 1;
                                 }
@@ -287,12 +303,69 @@ int main() {
                                 else idx.erase(clicked_index);
                             }
                         }
+                        else {
+                            idx.clear();
+                            index_side = 1;
+                        }
                     }
                 }
                 // else if (mouse_event->button == sf::Mouse::Button::Right) {
                     
                 // }
             }
+            if (const auto *move_event = event->getIf<sf::Event::MouseMoved>())
+                end_x = (float)move_event->position.x, end_y = (float)move_event->position.y;
+            if (const auto *release_event = event->getIf<sf::Event::MouseButtonReleased>()) {
+                if (isDragging && release_event->button == sf::Mouse::Button::Left) {
+                    isDragging = false;
+                    end_x = (float)release_event->position.x, end_y = (float)release_event->position.y;
+                    // PANOUL STANG
+                    if (start_x >= LEFT_PANE_X && start_x < LEFT_PANE_X + PANE_W && start_y >= LEFT_PANE_Y && start_y < LEFT_PANE_Y + PANE_H) {
+                        int first_index = GetClickedIndex(start_y, LEFT_PANE_Y, PANE_H, size_left);
+                        if(first_index == -1)
+                            first_index = 0;
+                        else if(first_index == -2)
+                            first_index = size_left - 1;
+                        if(first_index != -1) {
+                            int last_index = GetClickedIndex(end_y, LEFT_PANE_Y, PANE_H, size_left);
+                            if(last_index == -1) 
+                                last_index = 0;
+                            else if(last_index == -2)
+                                last_index = size_left - 1;
+                            if(last_index < first_index)
+                                std::swap(last_index, first_index);
+                            if(first_index != last_index) {
+                                for(int i = first_index; i <= last_index; i++)
+                                    idx.insert(i);
+                            }
+                        }
+                    }
+                    // PANOUL DREPT
+                    else if (start_x >= RIGHT_PANE_X && start_x < RIGHT_PANE_X + PANE_W &&
+                            start_y >= RIGHT_PANE_Y && start_y < RIGHT_PANE_Y + PANE_H-40) {
+                        int first_index = GetClickedIndex(start_y, RIGHT_PANE_Y, PANE_H, size_right);
+                        if(first_index == -1)
+                            first_index = 0;
+                        else if(first_index == -2)
+                            first_index = size_left - 1;
+                        if(first_index != -1) {
+                            int last_index = GetClickedIndex(end_y, RIGHT_PANE_Y, PANE_H, size_right);
+                            if(last_index == -1) 
+                                last_index = 0;
+                            else if(last_index == -2)
+                                last_index = size_right - 1;
+                            if(last_index < first_index)
+                                std::swap(last_index, first_index);
+                            if(first_index != last_index) {
+                                for(int i = first_index; i <= last_index; i++)
+                                    idx.insert(i);
+                            }
+                        }
+                    }
+                }
+
+            }
+                
             if (input_active) {
                 if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
                     // backspace
@@ -415,6 +488,16 @@ int main() {
                     }
                 }
             }
+        }
+        if(isDragging) {
+            float x1 = std::min(start_x, end_x), x2 = std::max(start_x, end_x), y1 = std::min(start_y, end_y), y2 = std::max(start_y, end_y);
+            sf::RectangleShape marquee;
+            marquee.setSize(sf::Vector2f(x2-x1, y2-y1));
+            marquee.setFillColor(sf::Color(37, 150, 190, 100));
+            marquee.setOutlineThickness(1.0f);
+            marquee.setOutlineColor(sf::Color(0, 0, 0));
+            marquee.setPosition(sf::Vector2f(x1, y1)); 
+            window.draw(marquee);
         }
         window.display();
     }

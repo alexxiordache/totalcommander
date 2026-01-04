@@ -35,6 +35,8 @@ extern int size_left, size_right;
 extern char last_sort_option[30];
 extern char left_history[MAX_HISTORY][PATH_MAX_LEN], right_history[MAX_HISTORY][PATH_MAX_LEN];
 extern int left_top, right_top;
+extern struct data search_result[MAX_FILES];
+extern int size_search;
 // time_t now(); 
 void construct_full_path(char *dest, const char *path, const char *filename);
 char lower(char c);
@@ -55,6 +57,8 @@ void file_delete(char* path, char* filename, struct data files[], int &n);
 void file_rename(const char* path, const char* old_filename, const char* new_filename, struct data files[], int &n);
 void copy(char* path, char* filename, char* dest_path, struct data files[], int &n);
 void move(char* path, char* filename, char* dest_path, struct data files1[], int &n1, struct data files2[], int &n2);
+void navigate(char* current_path, const char* target_name, struct data files[], int& size);
+void open_file(const char* folder_path, const char* file_name);
 
 // Searching
 bool compare_strings(const char a[], const char b[]);
@@ -63,7 +67,6 @@ bool strings_search(const char a[], const char b[]);
 void search(char a[], const char *path, bool &found); 
 void display_files(struct data files[], int n);
 char* get_executable_directory();
-void Navigate(char* current_path, const char* target_name, struct data files[], int& size);
 
 #ifdef __cplusplus
 }

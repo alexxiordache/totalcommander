@@ -11,6 +11,8 @@ sf::Font font;
 std::set<int> idx;
 bool isDragging;
 float start_x, start_y, end_x, end_y;
+bool found;
+int active_search;
 
 struct button_data{
     sf::RectangleShape shape;
@@ -172,6 +174,7 @@ int main() {
     button[3].name = "NewFolder";
     button[4].name = "Delete";
     button[5].name = "Rename";
+    button[6].name = "Search";
     // Definirea parametrilor panourilor pentru logica de click
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
     const float LEFT_PANE_X = PADDING;
@@ -182,7 +185,7 @@ int main() {
 
     std::string input = "";      
     bool input_active = false;        
-    int active_action = 0;              // To remember if we are Renaming (5) or NewFolder (3)
+    int active_action = 0;
     char new_name[105];
     int current_it;
 
@@ -200,7 +203,10 @@ int main() {
             
             if (const auto* keypressed = event->getIf<sf::Event::KeyPressed>()) {
                 if (keypressed->code == sf::Keyboard::Key::Escape) { 
-                    window.close();
+                    if (active_search != 0) {
+                        active_search = 0;
+                    }
+                    else window.close();
                 }
                 if (keypressed->code == sf::Keyboard::Key::Tab) { 
                     printf("TAB pressed - switch pane logic required.\n");
@@ -252,8 +258,11 @@ int main() {
                                         strcpy(left_history[left_top], path); 
                                         left_top++;
                                     }
-                                    Navigate(path, files_left[clicked_index].name, files_left, size_left);
+                                    navigate(path, files_left[clicked_index].name, files_left, size_left);
                                     idx.clear();
+                                }
+                                else {
+                                    open_file(path, files_left[clicked_index].name);
                                 }
                             }
                             else {
@@ -289,8 +298,11 @@ int main() {
                                         strcpy(right_history[right_top], documents_path); 
                                         right_top++;
                                     }
-                                    Navigate(documents_path, files_right[clicked_index].name, files_right, size_right);
+                                    navigate(documents_path, files_right[clicked_index].name, files_right, size_right);
                                     idx.clear();
+                                }
+                                else {
+                                    open_file(documents_path, files_right[clicked_index].name);
                                 }
                             }
                             else {
@@ -384,6 +396,12 @@ int main() {
                             }
                             else if (active_action == 5) 
                                 file_rename(documents_path, files_right[current_it].name, new_name, files_right, size_right);
+                            else if (active_action == 6) {
+                                found = 0;
+                                active_search = 2;
+                                size_search = 0;
+                                search(new_name, documents_path, found);
+                            }
                         }
                         else {
                             if (active_action == 3) {
@@ -393,23 +411,34 @@ int main() {
                             }
                             else if (active_action == 5) 
                                 file_rename(path, files_left[current_it].name, new_name, files_left, size_left);
+                            else if (active_action == 6) {
+                                found = 0;
+                                active_search = 1;
+                                size_search = 0;
+                                search(new_name, path, found);
+                            }
                         }
                         input = "";
                     }
                         // restul caracterelor
-                    else if (textEvent->unicode < 128) {
+                    else if (textEvent->unicode > 31 && textEvent->unicode < 128) {
                         input += static_cast<char>(textEvent->unicode);
                     }
                 }
             }
         }
         window.clear(sf::Color(30, 30, 30)); 
-            
+        
+        char res[50];
+        strcpy(res, "Search results:");
+        if (found == 0) strcpy(res, "No items match your search.");
         // Deseneaza panoul stang
-        DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
-
+        if (active_search == 1) DrawPane(window, res, PADDING, PADDING, search_result, size_search, 0);
+        else DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
+       
         // Deseneaza panoul drept 
-        DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
+        if (active_search == 2) DrawPane(window, res, PADDING + PANE_W + PADDING, PADDING, search_result, size_search, 1);
+        else DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
 
         if (input_active) {
             window.draw(input_bar);
@@ -429,7 +458,7 @@ int main() {
         // for(int i = 0; i < temp_size; i++)
         //     if(idx[i])
         //         selected_index[cnt++] = i;
-        for (int i = 1;i <= 5;++i) {
+        for (int i = 1;i <= 6;++i) {
             SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
                 if (UpdateButton(mousePos, button[i])) {
                 // pentru cazul in care este selectat un fisier din panoul stang
@@ -438,6 +467,12 @@ int main() {
                         input_active = true; 
                         input = "";
                         active_action = 3;
+                        continue;
+                    }
+                    if (i == 6) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 6;
                         continue;
                     }
                     std::set<int>::iterator it;
@@ -450,7 +485,7 @@ int main() {
                             save_with_metadata(documents_path, files_right, size_right);
                         }
                         else if (i == 4) file_delete(path,files_left[*it].name, files_left, size_left);
-                        else {
+                        else if (i == 5){
                             if(cnt > 1)
                                 printf("Cannot rename more than one file.");
                             else {
@@ -470,6 +505,12 @@ int main() {
                         active_action = 3;
                         continue;
                     }
+                    if (i == 6) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 6;
+                        continue;
+                    }
                     std::set<int>::iterator it;
                     for (it = idx.begin(); it != idx.end(); it++) {
                         if (i == 1) copy(documents_path, files_right[*it].name, path, files_left, size_left);
@@ -479,7 +520,7 @@ int main() {
                             save_with_metadata(documents_path, files_right, size_right);
                         }
                         else if (i == 4) file_delete(documents_path, files_right[*it].name, files_right, size_right);
-                        else {
+                        else if (i == 5) {
                             input_active = true; 
                             input = "";
                             active_action = 5; 

@@ -6,6 +6,8 @@ int last_sort_order = 0;
 char last_sort_option[30] = "Nume"; 
 char left_history[MAX_HISTORY][PATH_MAX_LEN], right_history[MAX_HISTORY][PATH_MAX_LEN];
 int left_top = 0, right_top = 0;
+data search_result[MAX_FILES];
+int size_search;
 
 void construct_full_path(char *dest, const char *path, const char *filename) {
     strcpy(dest, path);
@@ -145,13 +147,15 @@ void search(char a[], const char *path, bool &found) {
         // daca in acel folder se afla un alt folder, verificam daca fisierul cautat se afla in acesta
         if (S_ISDIR(file_info.st_mode)) {
             if (strings_search(entry->d_name, a)) {
-                 printf("%s \n", full_path);
-                 found = 1;
+                strcpy(search_result[size_search].name, full_path);
+                size_search++;
+                found = 1;
             }
             search(a, full_path, found);
         } 
         else if (strings_search(entry->d_name, a)) {
-            printf("%s \n", full_path);
+            strcpy(search_result[size_search].name, full_path);
+            size_search++;
             found = 1;
         }
     }
@@ -217,7 +221,7 @@ void create_file(const char *path, const char *filename, data files[], int &n) {
     }
 }
 
-void create_folder(const char*path, const char *foldername, data files[], int &n) {
+void create_folder(const char *path, const char *foldername, data files[], int &n) {
     char full_path[PATH_MAX_LEN];
     struct stat dir_info;
     construct_full_path(full_path, path, foldername);
@@ -238,7 +242,7 @@ void create_folder(const char*path, const char *foldername, data files[], int &n
     }
 }
 
-void file_delete(char* path, char* filename, data files[], int &n) {
+void file_delete(char *path, char *filename, data files[], int &n) {
     char full_path[PATH_MAX_LEN];
     struct stat file_info;
     int m;
@@ -278,7 +282,7 @@ void file_delete(char* path, char* filename, data files[], int &n) {
 
 
 
-void file_rename(const char* path, const char* old_filename, const char* new_filename, data files[], int &n) {
+void file_rename(const char *path, const char *old_filename, const char *new_filename, data files[], int &n) {
     char old_full_path[PATH_MAX_LEN];
     char new_full_path[PATH_MAX_LEN];
     construct_full_path(old_full_path, path, old_filename);
@@ -297,7 +301,7 @@ void file_rename(const char* path, const char* old_filename, const char* new_fil
     }
 }
 
-void copy(char* path, char* filename, char* dest_path, data dest_files[], int &n) {
+void copy(char *path, char *filename, char *dest_path, data dest_files[], int &n) {
     char file_path[PATH_MAX_LEN];
     char new_file_path[PATH_MAX_LEN];
     struct stat file_info;
@@ -345,7 +349,7 @@ void copy(char* path, char* filename, char* dest_path, data dest_files[], int &n
     sort_files(last_sort_option, last_sort_order, dest_files, n);
 }
 
-void move(char* path, char* filename, char* dest_path, data files1[], int &n1, data files2[], int &n2) {
+void move(char *path, char *filename, char *dest_path, data files1[], int &n1, data files2[], int &n2) {
     copy(path, filename, dest_path, files2, n2);
     file_delete(path, filename, files1, n1);
     sort_files(last_sort_option, last_sort_order, files1, n1);
@@ -475,23 +479,28 @@ char* get_executable_directory() {
     return dir_path;
 }
 
-void Navigate(char* current_path, const char* target_name, data files[], int& size) {
+void navigate(char *current_path, const char *target_name, data files[], int &size) {
     if (strcmp(target_name, "..") == 0) {
-        // Go Up: Find the last backslash and terminate the string there
         char* last_slash = strrchr(current_path, '\\');
         if (last_slash) {
             *last_slash = '\0';
         }
-        // Basic safety: If we erased everything, don't leave it empty (e.g., C:)
         if (strlen(current_path) < 3) {
             strcat(current_path, "\\");
         }
-    } else {
-        // Go Down: Add backslash and the new folder name
+    } 
+    else {
         strcat(current_path, "\\");
         strcat(current_path, target_name);
     }
 
-    // Refresh the file array using your existing utility function
     save_with_metadata(current_path, files, size);
+}
+
+void open_file(const char* folder_path, const char* file_name) {
+    char full_path[PATH_MAX_LEN];
+    strcpy(full_path, folder_path);
+    strcat(full_path, "\\");
+    strcat(full_path, file_name);
+    ShellExecuteA(NULL, "open", full_path, NULL, NULL, SW_SHOWNORMAL);
 }

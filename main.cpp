@@ -166,12 +166,12 @@ int main() {
     sf::RenderWindow window(video_mode, "My Commander", sf::Style::Close);
     //window.setFramerateLimit(60);
     if (!font.openFromFile("Segoe UI.ttf")) { 
-        fprintf(stderr, "Error loading font 'Segoe UI.ttf'! Ensure it is in the project root.\n");
+        printf("Eroare: Nu am gasit 'Segoe UI.ttf'!.\n");
         return 0;
     }
     button[1].name = "Copy";
     button[2].name = "Move";
-    button[3].name = "NewFolder";
+    button[3].name = "New Folder";
     button[4].name = "Delete";
     button[5].name = "Rename";
     button[6].name = "Search";
@@ -203,7 +203,14 @@ int main() {
             
             if (const auto* keypressed = event->getIf<sf::Event::KeyPressed>()) {
                 if (keypressed->code == sf::Keyboard::Key::Escape) { 
-                    if (active_search != 0) {
+                    if (active_search == 1) {
+                        std::swap(files_left, search_result);
+                        std::swap(size_left, size_search);
+                        active_search = 0;
+                    }
+                    else if(active_search == 2) {
+                        std::swap(files_right, search_result);
+                        std::swap(size_right, size_search);
                         active_search = 0;
                     }
                     else window.close();
@@ -246,6 +253,7 @@ int main() {
                         mouse_y >= LEFT_PANE_Y && mouse_y < LEFT_PANE_Y + PANE_H-40) {
                         if (index_side != 0) {
                             index_side = 0;
+                            isDragging = false;
                             idx.clear();
                         }
                         clicked_index = GetClickedIndex(mouse_y, LEFT_PANE_Y, PANE_H, size_left);
@@ -262,6 +270,7 @@ int main() {
                                     idx.clear();
                                 }
                                 else {
+                                    printf("open %s", files_left[clicked_index].name);
                                     open_file(path, files_left[clicked_index].name);
                                 }
                             }
@@ -286,6 +295,7 @@ int main() {
                             mouse_y >= RIGHT_PANE_Y && mouse_y < RIGHT_PANE_Y + PANE_H-40) {
                         if (index_side != 1) {
                             index_side = 1;
+                            isDragging = false;
                             idx.clear();
                         }
                         clicked_index = GetClickedIndex(mouse_y, RIGHT_PANE_Y, PANE_H, size_right);
@@ -359,7 +369,7 @@ int main() {
                         if(first_index == -1)
                             first_index = 0;
                         else if(first_index == -2)
-                            first_index = size_left - 1;
+                            first_index = size_right - 1;
                         if(first_index != -1) {
                             int last_index = GetClickedIndex(end_y, RIGHT_PANE_Y, PANE_H, size_right);
                             if(last_index == -1) 
@@ -397,10 +407,13 @@ int main() {
                             else if (active_action == 5) 
                                 file_rename(documents_path, files_right[current_it].name, new_name, files_right, size_right);
                             else if (active_action == 6) {
+                                idx.clear();
                                 found = 0;
                                 active_search = 2;
                                 size_search = 0;
                                 search(new_name, documents_path, found);
+                                std::swap(search_result, files_right);
+                                std::swap(size_right, size_search);
                             }
                         }
                         else {
@@ -412,10 +425,13 @@ int main() {
                             else if (active_action == 5) 
                                 file_rename(path, files_left[current_it].name, new_name, files_left, size_left);
                             else if (active_action == 6) {
+                                idx.clear();
                                 found = 0;
                                 active_search = 1;
                                 size_search = 0;
                                 search(new_name, path, found);
+                                std::swap(search_result, files_left);
+                                std::swap(size_left, size_search);
                             }
                         }
                         input = "";
@@ -432,13 +448,11 @@ int main() {
         char res[50];
         strcpy(res, "Search results:");
         if (found == 0) strcpy(res, "No items match your search.");
+        strcat(res, " Press ESC to go back.");
         // Deseneaza panoul stang
-        if (active_search == 1) DrawPane(window, res, PADDING, PADDING, search_result, size_search, 0);
-        else DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
-       
+        DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
         // Deseneaza panoul drept 
-        if (active_search == 2) DrawPane(window, res, PADDING + PANE_W + PADDING, PADDING, search_result, size_search, 1);
-        else DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
+        DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
 
         if (input_active) {
             window.draw(input_bar);
@@ -451,13 +465,6 @@ int main() {
 
         sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
         int cnt = 0;
-        // int selected_index[1000];
-        // int temp_size = size_left;
-        // if(index_side == 1) 
-        //     temp_size = size_right;
-        // for(int i = 0; i < temp_size; i++)
-        //     if(idx[i])
-        //         selected_index[cnt++] = i;
         for (int i = 1;i <= 6;++i) {
             SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
                 if (UpdateButton(mousePos, button[i])) {
@@ -487,7 +494,7 @@ int main() {
                         else if (i == 4) file_delete(path,files_left[*it].name, files_left, size_left);
                         else if (i == 5){
                             if(cnt > 1)
-                                printf("Cannot rename more than one file.");
+                                printf("Nu puteti redenumi mai mult de un fisier.");
                             else {
                                 input_active = true; 
                                 input = "";
@@ -543,6 +550,3 @@ int main() {
         window.display();
     }
 }
-
-// TODO: Adaugxa .. pt a te intoarce in folder-ul parinte
-// select cu mouse, tab, sageata sus, jos

@@ -66,7 +66,6 @@ bool sort_compare(data file1, data file2, char option[]) {
     else if(!strcmp(option, "Tipul Fisierului"))
     {
         char *ext1 = get_extension(file1), *ext2 = get_extension(file2);
-        printf("%s, %s\n", ext1, ext2); 
         int rez = compare_strings(ext1, ext2);
         if(rez <= 0) return 0;
         return 1;
@@ -499,8 +498,12 @@ void navigate(char *current_path, const char *target_name, data files[], int &si
 
 void open_file(const char* folder_path, const char* file_name) {
     char full_path[PATH_MAX_LEN];
-    strcpy(full_path, folder_path);
-    strcat(full_path, "\\");
-    strcat(full_path, file_name);
+    if(!strstr(file_name, folder_path)) {
+        // daca in full_path nu este deja file_name
+        strcpy(full_path, folder_path);
+        strcat(full_path, "\\");
+        strcat(full_path, file_name);
+    }
+    else strcpy(full_path, file_name);
     ShellExecuteA(NULL, "open", full_path, NULL, NULL, SW_SHOWNORMAL);
 }

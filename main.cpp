@@ -4,6 +4,7 @@ const float WINDOW_W = 1200.0f;
 const float WINDOW_H = 800.0f;
 const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
+const int VISIBLE_ITEMS = 23;
 const unsigned int FONT_SIZE = 20;
 char icon_path[PATH_MAX_LEN];
 bool index_side = 0; // 0 - stanga, 1 - dreapta
@@ -13,6 +14,7 @@ bool isDragging;
 float start_x, start_y, end_x, end_y;
 bool found;
 int active_search;
+int scroll_left, scroll_right;
 
 struct button_data{
     sf::RectangleShape shape;
@@ -65,9 +67,9 @@ bool UpdateButton(const sf::Vector2f& mousePos, button_data &button) {
 }
 
 
-void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float y, data files[], int size, bool cur_side) {
+void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float y, data files[], int size, bool cur_side, int scroll_offset) {
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
-    const float PANE_H = WINDOW_H - 2 * PADDING;
+    const float PANE_H = WINDOW_H - 2 * PADDING - 50;
 
     sf::RectangleShape pane_bg;
     pane_bg.setSize(sf::Vector2f(PANE_W, PANE_H));
@@ -89,9 +91,11 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
     const float LIST_ITEM_W = PANE_W - 4.0f;
     char ext_path[PATH_MAX_LEN];
 
-    for (int i = 0; i < size; ++i) { 
+    for (int i = 0; i < VISIBLE_ITEMS; ++i) { 
+        int file_idx = i + scroll_offset;
+        if (file_idx >= size) break;
         float item_y = LIST_START_Y + i * ITEM_HEIGHT;
-        char *ext = get_extension(files[i]);
+        char *ext = get_extension(files[file_idx]);
         if(!ext)
             ext = strdup("directory");
         strcpy(ext_path, icon_path);
@@ -106,13 +110,13 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         const sf::Texture texture(ext_path);
         sf::RectangleShape icon_rect;
         icon_rect.setSize(sf::Vector2f(16.0f, 16.0f));
-        sf::Text item_text(font, files[i].name, FONT_SIZE);        
-        if (files[i].isDir) {
+        sf::Text item_text(font, files[file_idx].name, FONT_SIZE);        
+        if (files[file_idx].isDir) {
             item_text.setFillColor(sf::Color(150, 150, 255)); 
         } else {
             item_text.setFillColor(sf::Color::White); 
         }
-        if (index_side == cur_side && idx.count(i)) {
+        if (index_side == cur_side && idx.count(file_idx)) {
             sf::RectangleShape highlight_bg;
             highlight_bg.setSize(sf::Vector2f(LIST_ITEM_W, ITEM_HEIGHT - PADDING));
             highlight_bg.setPosition(sf::Vector2f(LIST_LEFT_X, item_y - 5.0f));
@@ -127,6 +131,29 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         item_text.setFillColor(sf::Color::Black); 
         window.draw(icon_rect);
         window.draw(item_text);
+    }
+    if (size > VISIBLE_ITEMS) {
+        float sb_width = 10.0f;
+        float track_h = PANE_H - (LIST_START_Y - y-6)*2;
+        float track_x = x + PANE_W - sb_width;
+        float track_y = LIST_START_Y-6.0f;
+
+        sf::RectangleShape track(sf::Vector2f(sb_width, track_h));
+        track.setPosition(sf::Vector2f(track_x, track_y));
+        track.setFillColor(sf::Color(220, 220, 220));
+        window.draw(track);
+
+        float view_ratio = (float)VISIBLE_ITEMS / size;
+        float thumb_h = track_h * view_ratio;
+        if (thumb_h < 20.0f) thumb_h = 20.0f;
+
+        float scroll_ratio = (float)scroll_offset / (size - VISIBLE_ITEMS);
+        float thumb_y = track_y + (track_h - thumb_h) * scroll_ratio;
+
+        sf::RectangleShape thumb(sf::Vector2f(sb_width, thumb_h));
+        thumb.setPosition(sf::Vector2f(track_x, thumb_y));
+        thumb.setFillColor(sf::Color(120, 120, 120));
+        window.draw(thumb);
     }
 }
 
@@ -258,20 +285,21 @@ int main() {
                         }
                         clicked_index = GetClickedIndex(mouse_y, LEFT_PANE_Y, PANE_H, size_left);
                         if (clicked_index >= 0) {
-                            if (index_side == 0 && idx.count(clicked_index)) {
+                            if (index_side == 0 && idx.count(clicked_index+scroll_left)) {
                                 if(ctrlPressed) 
-                                    idx.erase(clicked_index);
-                                else if (files_left[clicked_index].isDir) {
+                                    idx.erase(clicked_index+scroll_left);
+                                else if (files_left[clicked_index+scroll_left].isDir) {
                                     if (left_top < MAX_HISTORY) {
                                         strcpy(left_history[left_top], path); 
                                         left_top++;
-                                    }
-                                    navigate(path, files_left[clicked_index].name, files_left, size_left);
+                                    } 
+                                    navigate(path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                                    scroll_left = 0;
                                     idx.clear();
                                 }
                                 else {
-                                    printf("open %s", files_left[clicked_index].name);
-                                    open_file(path, files_left[clicked_index].name);
+                                    printf("open %s", files_left[clicked_index+scroll_left].name);
+                                    open_file(path, files_left[clicked_index+scroll_left].name);
                                 }
                             }
                             else {
@@ -279,9 +307,9 @@ int main() {
                                     idx.clear();
                                     index_side = 0;
                                 }
-                                if(!idx.count(clicked_index))
-                                    idx.insert(clicked_index);
-                                else idx.erase(clicked_index);
+                                if(!idx.count(clicked_index+scroll_left))
+                                    idx.insert(clicked_index+scroll_left);
+                                else idx.erase(clicked_index+scroll_left);
                             }
                         }
                         else {
@@ -300,19 +328,20 @@ int main() {
                         }
                         clicked_index = GetClickedIndex(mouse_y, RIGHT_PANE_Y, PANE_H, size_right);
                         if (clicked_index >= 0) {
-                            if (index_side == 1 && idx.count(clicked_index)) {
+                            if (index_side == 1 && idx.count(clicked_index+scroll_right)) {
                                 if(ctrlPressed) 
-                                    idx.erase(clicked_index);
-                                else if (files_right[clicked_index].isDir) {
+                                    idx.erase(clicked_index+scroll_right);
+                                else if (files_right[clicked_index+scroll_right].isDir) {
                                     if (right_top < MAX_HISTORY) {
                                         strcpy(right_history[right_top], documents_path); 
                                         right_top++;
-                                    }
-                                    navigate(documents_path, files_right[clicked_index].name, files_right, size_right);
+                                    } 
+                                    navigate(documents_path, files_right[clicked_index+scroll_right].name, files_right, size_right);
+                                    scroll_right = 0;
                                     idx.clear();
                                 }
                                 else {
-                                    open_file(documents_path, files_right[clicked_index].name);
+                                    open_file(documents_path, files_right[clicked_index+scroll_right].name);
                                 }
                             }
                             else {
@@ -320,9 +349,9 @@ int main() {
                                     idx.clear();
                                     index_side = 1;
                                 }
-                                if(!idx.count(clicked_index))
-                                    idx.insert(clicked_index);
-                                else idx.erase(clicked_index);
+                                if(!idx.count(clicked_index+scroll_right))
+                                    idx.insert(clicked_index+scroll_right);
+                                else idx.erase(clicked_index+scroll_right);
                             }
                         }
                         else {
@@ -358,7 +387,7 @@ int main() {
                                 std::swap(last_index, first_index);
                             if(first_index != last_index) {
                                 for(int i = first_index; i <= last_index; i++)
-                                    idx.insert(i);
+                                    idx.insert(i+scroll_left);
                             }
                         }
                     }
@@ -380,7 +409,7 @@ int main() {
                                 std::swap(last_index, first_index);
                             if(first_index != last_index) {
                                 for(int i = first_index; i <= last_index; i++)
-                                    idx.insert(i);
+                                    idx.insert(i+scroll_right);
                             }
                         }
                     }
@@ -442,6 +471,28 @@ int main() {
                     }
                 }
             }
+
+            if (const auto *scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
+                if (scroll->wheel == sf::Mouse::Wheel::Vertical) {
+                    int *current_scroll;
+                    int current_size;
+                    if (!index_side) {
+                        current_scroll = &scroll_left;
+                        current_size = size_left;
+                    }
+                    else {
+                        current_scroll = &scroll_right;
+                        current_size = size_right;
+                    }
+                    if (scroll->delta > 0) {
+                        if (*current_scroll > 0) (*current_scroll)--;
+                    }
+                    else if (scroll->delta < 0) {
+                        if (*current_scroll + 23 < current_size) (*current_scroll)++;
+                    }
+                }
+            }
+                
         }
         window.clear(sf::Color(30, 30, 30)); 
         
@@ -450,9 +501,11 @@ int main() {
         if (found == 0) strcpy(res, "No items match your search.");
         strcat(res, " Press ESC to go back.");
         // Deseneaza panoul stang
-        DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0);
+        if (active_search == 1) DrawPane(window, res, PADDING, PADDING, files_left, size_left, 0, scroll_left);
+        else DrawPane(window, path, PADDING, PADDING, files_left, size_left, 0, scroll_left);
         // Deseneaza panoul drept 
-        DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1);
+        if (active_search == 2) DrawPane(window, res, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1, scroll_right);
+        else DrawPane(window, documents_path, PADDING + PANE_W + PADDING, PADDING, files_right, size_right, 1, scroll_right);
 
         if (input_active) {
             window.draw(input_bar);

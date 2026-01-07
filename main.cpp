@@ -15,12 +15,14 @@ float start_x, start_y, end_x, end_y;
 bool found;
 int active_search;
 int scroll_left, scroll_right;
+bool right_click;
+int right_click_x, right_click_y;
 
 struct button_data{
     sf::RectangleShape shape;
     std::string name;
     bool isPressed;
-} button[10];
+} button[10], right_click_button[10];
 
 void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
     button.shape.setSize(sf::Vector2f(200, 50));
@@ -43,6 +45,31 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     else button_text.setFillColor(sf::Color::White);
     sf::FloatRect textBounds = button_text.getLocalBounds();
     button_text.setPosition(sf::Vector2f(x + 200*(i-1) + 75.0f, y + 15.0f));
+    window.draw(button.shape);
+    window.draw(button_text);
+}
+
+void RightClickButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
+    button.shape.setSize(sf::Vector2f(100, 30));
+    button.shape.setPosition(sf::Vector2f(x, y+30*(i-1))); 
+    sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    bool isHovering = button.shape.getGlobalBounds().contains(mousePos);
+    if(isHovering) 
+        button.shape.setFillColor(sf::Color(224, 224, 224)); 
+    else 
+        button.shape.setFillColor(sf::Color(40, 40, 40)); 
+    button.shape.setOutlineThickness(1.0f);
+    button.shape.setOutlineColor(sf::Color(100, 100, 100));
+
+    sf::Text button_text(font);
+    button_text.setFont(font); 
+    button_text.setCharacterSize(15);
+    button_text.setString(button.name);
+    if(isHovering)
+        button_text.setFillColor(sf::Color::Black);
+    else button_text.setFillColor(sf::Color::White);
+    sf::FloatRect textBounds = button_text.getLocalBounds();
+    button_text.setPosition(sf::Vector2f(x + 10.0f, y + 30 * (i-1) + 5.0f));
     window.draw(button.shape);
     window.draw(button_text);
 }
@@ -202,6 +229,12 @@ int main() {
     button[4].name = "Delete";
     button[5].name = "Rename";
     button[6].name = "Search";
+    right_click_button[1].name = "Copy";
+    right_click_button[2].name = "Move";
+    right_click_button[3].name = "New Folder";
+    right_click_button[4].name = "Delete";
+    right_click_button[5].name = "Rename";
+    right_click_button[6].name = "Search";
     // Definirea parametrilor panourilor pentru logica de click
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
     const float LEFT_PANE_X = PADDING;
@@ -263,6 +296,7 @@ int main() {
 
             if (const auto *mouse_event = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouse_event->button == sf::Mouse::Button::Left) {
+                    right_click = false;
                     float mouse_x = (float)mouse_event->position.x, mouse_y = (float)mouse_event->position.y;
                     if(!isDragging)
                     {
@@ -298,7 +332,6 @@ int main() {
                                     idx.clear();
                                 }
                                 else {
-                                    printf("open %s", files_left[clicked_index+scroll_left].name);
                                     open_file(path, files_left[clicked_index+scroll_left].name);
                                 }
                             }
@@ -360,9 +393,11 @@ int main() {
                         }
                     }
                 }
-                // else if (mouse_event->button == sf::Mouse::Button::Right) {
-                    
-                // }
+                else if (mouse_event->button == sf::Mouse::Button::Right) {
+                    right_click_x = mouse_event->position.x;
+                    right_click_y = mouse_event->position.y;
+                    right_click = true;
+                }
             }
             if (const auto *move_event = event->getIf<sf::Event::MouseMoved>())
                 end_x = (float)move_event->position.x, end_y = (float)move_event->position.y;
@@ -491,8 +526,7 @@ int main() {
                         if (*current_scroll + 23 < current_size) (*current_scroll)++;
                     }
                 }
-            }
-                
+            }    
         }
         window.clear(sf::Color(30, 30, 30)); 
         
@@ -520,7 +554,9 @@ int main() {
         int cnt = 0;
         for (int i = 1;i <= 6;++i) {
             SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
-                if (UpdateButton(mousePos, button[i])) {
+            if(right_click)
+                RightClickButton(window, font, right_click_x, right_click_y, right_click_button[i], i);
+                if (UpdateButton(mousePos, button[i]) || (right_click && UpdateButton(mousePos, right_click_button[i]))) {
                 // pentru cazul in care este selectat un fisier din panoul stang
                 if (!index_side) {
                     if (i == 3) {

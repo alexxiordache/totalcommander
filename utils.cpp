@@ -507,3 +507,16 @@ void open_file(const char* folder_path, const char* file_name) {
     else strcpy(full_path, file_name);
     ShellExecuteA(NULL, "open", full_path, NULL, NULL, SW_SHOWNORMAL);
 }
+
+char* convert_size(long bytes) {
+    char *buffer;
+    const char* units[] = {"B", "KB", "MB", "GB", "TB"};
+    int index = 0;
+    double size = bytes;
+    while(size >= 1024 && index < 4) {
+        size /= 1024;
+        index++;
+    }  
+    snprintf(buffer, 32*sizeof(char), "%.2f %s", size, units[index]);
+    return buffer;
+}

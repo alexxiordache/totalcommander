@@ -6,6 +6,7 @@ const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
 const int VISIBLE_ITEMS = 23;
 const unsigned int FONT_SIZE = 20;
+const unsigned int NAME_MAX_LEN = 18, SIZE_MAX_LEN = 6;
 char icon_path[PATH_MAX_LEN];
 bool index_side = 0; // 0 - stanga, 1 - dreapta
 sf::Font font;
@@ -36,10 +37,7 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     button.shape.setOutlineThickness(1.0f);
     button.shape.setOutlineColor(sf::Color(100, 100, 100));
 
-    sf::Text button_text(font);
-    button_text.setFont(font); 
-    button_text.setCharacterSize(FONT_SIZE);
-    button_text.setString(button.name);
+    sf::Text button_text(font, button.name, FONT_SIZE);
     if(isHovering)
         button_text.setFillColor(sf::Color::Black);
     else button_text.setFillColor(sf::Color::White);
@@ -61,10 +59,7 @@ void RightClickButton(sf::RenderWindow& window, const sf::Font& font, float x, f
     button.shape.setOutlineThickness(1.0f);
     button.shape.setOutlineColor(sf::Color(100, 100, 100));
 
-    sf::Text button_text(font);
-    button_text.setFont(font); 
-    button_text.setCharacterSize(15);
-    button_text.setString(button.name);
+    sf::Text button_text(font, button.name, 15);
     if(isHovering)
         button_text.setFillColor(sf::Color::Black);
     else button_text.setFillColor(sf::Color::White);
@@ -106,14 +101,27 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
     pane_bg.setOutlineColor(sf::Color(100, 100, 100));
     window.draw(pane_bg);
 
-    sf::Text path_text(font);
-    path_text.setCharacterSize(FONT_SIZE);
-    path_text.setString(path_display); // Aici setati continutul
+    sf::Text path_text(font, path_display, FONT_SIZE), name_text(font, "Nume", FONT_SIZE), date_text(font, "Data", FONT_SIZE), type_text(font, "Tip", FONT_SIZE), size_text(font, "Dimensiune", FONT_SIZE);
+    float name_offset = 5.0f, date_offset = 250.0f, type_offset = 400.0f, size_offset = 475.0f; 
     path_text.setPosition(sf::Vector2f(x + 5.0f, y + 5.0f));
     path_text.setFillColor(sf::Color::Black); 
     window.draw(path_text);
 
-    const float LIST_START_Y = y + 5.0f + ITEM_HEIGHT + PADDING; 
+    name_text.setPosition(sf::Vector2f(x + name_offset, y + 30.0f));
+    name_text.setFillColor(sf::Color::Black); 
+    window.draw(name_text);
+    date_text.setPosition(sf::Vector2f(x + date_offset, y + 30.0f));
+    date_text.setFillColor(sf::Color::Black); 
+    window.draw(date_text);
+    type_text.setPosition(sf::Vector2f(x + type_offset, y + 30.0f));
+    type_text.setFillColor(sf::Color::Black); 
+    window.draw(type_text);
+    size_text.setPosition(sf::Vector2f(x + size_offset, y + 30.0f));
+    size_text.setFillColor(sf::Color::Black); 
+    window.draw(size_text);
+
+
+    const float LIST_START_Y = y + 30.0f + ITEM_HEIGHT + PADDING; 
     const float LIST_LEFT_X = x + 2.0f;
     const float LIST_ITEM_W = PANE_W - 4.0f;
     char ext_path[PATH_MAX_LEN];
@@ -133,16 +141,25 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
             strcpy(ext_path, icon_path);
             strcat(ext_path, "default.png");
         }
+        char item_date[50];
+        std::tm *time_info = std::localtime(&files[file_idx].date);
+        std::strftime(item_date, sizeof(item_date), "%Y-%m-%d %H:%M", time_info);
+        char item_name[PATH_MAX_LEN];
+        strncpy(item_name, files[file_idx].name, NAME_MAX_LEN);
+        char* item_size = convert_size(files[file_idx].size);
+        char item_size_arr[32];
+        strncpy(item_size_arr, item_size, SIZE_MAX_LEN);
+        // printf("item size %s", item_size);
 
         const sf::Texture texture(ext_path);
         sf::RectangleShape icon_rect;
         icon_rect.setSize(sf::Vector2f(16.0f, 16.0f));
-        sf::Text item_text(font, files[file_idx].name, FONT_SIZE);        
-        if (files[file_idx].isDir) {
-            item_text.setFillColor(sf::Color(150, 150, 255)); 
-        } else {
-            item_text.setFillColor(sf::Color::White); 
-        }
+        sf::Text item_name_text(font, item_name, FONT_SIZE), item_date_text(font, item_date, 18), 
+        item_type_text(font, get_extension(files[file_idx]), FONT_SIZE), item_size_text(font, item_size_arr, FONT_SIZE);        
+        
+
+        
+        
         if (index_side == cur_side && idx.count(file_idx)) {
             sf::RectangleShape highlight_bg;
             highlight_bg.setSize(sf::Vector2f(LIST_ITEM_W, ITEM_HEIGHT - PADDING));
@@ -152,12 +169,21 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
             highlight_bg.setOutlineColor(sf::Color(0, 0, 0));
             window.draw(highlight_bg);
         }
-        icon_rect.setPosition(sf::Vector2f(x + 5.0f, y + 10.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
+        icon_rect.setPosition(sf::Vector2f(x + 5.0f, y + 35.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
         icon_rect.setTexture(&texture);
-        item_text.setPosition(sf::Vector2f(x + 25.0f, y + 5.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
-        item_text.setFillColor(sf::Color::Black); 
+        item_name_text.setPosition(sf::Vector2f(x + name_offset + 20.0f, y + 30.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
+        item_name_text.setFillColor(sf::Color::Black); 
+        item_date_text.setPosition(sf::Vector2f(x + date_offset, y + 30.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
+        item_date_text.setFillColor(sf::Color::Black); 
+        item_type_text.setPosition(sf::Vector2f(x + type_offset, y + 30.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
+        item_type_text.setFillColor(sf::Color::Black); 
+        item_size_text.setPosition(sf::Vector2f(x + size_offset, y + 30.0f + ITEM_HEIGHT + (i * ITEM_HEIGHT)));
+        item_size_text.setFillColor(sf::Color::Black); 
         window.draw(icon_rect);
-        window.draw(item_text);
+        window.draw(item_name_text);
+        window.draw(item_date_text);
+        window.draw(item_type_text);
+        window.draw(item_size_text);
     }
     if (size > VISIBLE_ITEMS) {
         float sb_width = 10.0f;
@@ -263,7 +289,9 @@ int main() {
             
             if (const auto* keypressed = event->getIf<sf::Event::KeyPressed>()) {
                 if (keypressed->code == sf::Keyboard::Key::Escape) { 
-                    if (active_search == 1) {
+                    if(input_active)
+                        input_active = false;
+                    else if (active_search == 1) {
                         std::swap(files_left, search_result);
                         std::swap(size_left, size_search);
                         active_search = 0;
@@ -273,10 +301,16 @@ int main() {
                         std::swap(size_right, size_search);
                         active_search = 0;
                     }
-                    else window.close();
+                    // else window.close();
                 }
                 if (keypressed->code == sf::Keyboard::Key::Tab) { 
-                    printf("TAB pressed - switch pane logic required.\n");
+                    std::swap(files_left, files_right);
+                    std::swap(size_left, size_right);
+                    index_side ^= 1;
+                    char aux[PATH_MAX_LEN];
+                    strcpy(aux, path);
+                    strcpy(path, documents_path);
+                    strcpy(documents_path, aux);
                 }
                 if (keypressed->code == sf::Keyboard::Key::Backspace && !input_active) {
                     if (index_side == 0 && left_top > 0) {
@@ -394,9 +428,39 @@ int main() {
                     }
                 }
                 else if (mouse_event->button == sf::Mouse::Button::Right) {
+                    bool ctrlPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl);
                     right_click_x = mouse_event->position.x;
                     right_click_y = mouse_event->position.y;
                     right_click = true;
+                    if (right_click_x >= LEFT_PANE_X && right_click_x < LEFT_PANE_X + PANE_W) {
+                        if(index_side) {
+                            idx.clear();
+                            index_side = 0;
+                        }
+                    }
+                    else 
+                        if(!index_side) {
+                            idx.clear();
+                            index_side = 1;
+                        }
+
+                    int index;
+                    if(!index_side) index = GetClickedIndex(right_click_y, LEFT_PANE_Y, PANE_H, size_left);
+                    else index = GetClickedIndex(right_click_y, RIGHT_PANE_Y, PANE_H, size_right);
+                    if(!ctrlPressed) 
+                        idx.clear();   
+                    if(index_side >= 0)
+                        if (!index_side) 
+                            idx.insert(index + scroll_left);
+                        else idx.insert(index + scroll_right);
+                    else {
+                        if(idx.empty())
+                        {
+                            if(index == -1)
+                                idx.insert(0);
+                            else idx.insert(!index_side ? size_left - 1 : size_right - 1);
+                        }
+                    }
                 }
             }
             if (const auto *move_event = event->getIf<sf::Event::MouseMoved>())
@@ -412,19 +476,17 @@ int main() {
                             first_index = 0;
                         else if(first_index == -2)
                             first_index = size_left - 1;
-                        if(first_index != -1) {
-                            int last_index = GetClickedIndex(end_y, LEFT_PANE_Y, PANE_H, size_left);
-                            if(last_index == -1) 
-                                last_index = 0;
-                            else if(last_index == -2)
-                                last_index = size_left - 1;
-                            if(last_index < first_index)
-                                std::swap(last_index, first_index);
-                            if(first_index != last_index) {
-                                for(int i = first_index; i <= last_index; i++)
-                                    idx.insert(i+scroll_left);
+                        int last_index = GetClickedIndex(end_y, LEFT_PANE_Y, PANE_H, size_left);
+                        if(last_index == -1) 
+                            last_index = 0;
+                        else if(last_index == -2)
+                            last_index = size_left - 1;
+                        if(last_index < first_index)
+                            std::swap(last_index, first_index);
+                        if(first_index != last_index) {
+                            for(int i = first_index; i <= last_index; i++)
+                                idx.insert(i+scroll_left);
                             }
-                        }
                     }
                     // PANOUL DREPT
                     else if (start_x >= RIGHT_PANE_X && start_x < RIGHT_PANE_X + PANE_W &&
@@ -433,19 +495,17 @@ int main() {
                         if(first_index == -1)
                             first_index = 0;
                         else if(first_index == -2)
-                            first_index = size_right - 1;
-                        if(first_index != -1) {
-                            int last_index = GetClickedIndex(end_y, RIGHT_PANE_Y, PANE_H, size_right);
-                            if(last_index == -1) 
-                                last_index = 0;
-                            else if(last_index == -2)
-                                last_index = size_right - 1;
-                            if(last_index < first_index)
-                                std::swap(last_index, first_index);
-                            if(first_index != last_index) {
-                                for(int i = first_index; i <= last_index; i++)
-                                    idx.insert(i+scroll_right);
-                            }
+                        first_index = size_right - 1;
+                        int last_index = GetClickedIndex(end_y, RIGHT_PANE_Y, PANE_H, size_right);
+                        if(last_index == -1) 
+                            last_index = 0;
+                        else if(last_index == -2)
+                            last_index = size_right - 1;
+                        if(last_index < first_index)
+                            std::swap(last_index, first_index);
+                        if(first_index != last_index) {
+                            for(int i = first_index; i <= last_index; i++)
+                                idx.insert(i+scroll_right);
                         }
                     }
                 }
@@ -586,7 +646,9 @@ int main() {
                                 printf("Nu puteti redenumi mai mult de un fisier.");
                             else {
                                 input_active = true; 
-                                input = "";
+                                // input = "";
+                                // strcpy(input, files_left[*it].name);
+                                input.assign(files_left[*it].name);
                                 active_action = 5; 
                                 current_it = *it;
                             }

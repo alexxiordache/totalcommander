@@ -37,7 +37,7 @@ extern char left_history[MAX_HISTORY][PATH_MAX_LEN], right_history[MAX_HISTORY][
 extern int left_top, right_top;
 extern struct data search_result[MAX_FILES];
 extern int size_search;
-// time_t now(); 
+
 void construct_full_path(char *dest, const char *path, const char *filename);
 char lower(char c);
 
@@ -48,6 +48,7 @@ bool sort_compare(struct data file1, struct data file2, char option[]); // Use s
 // File/Path Utilities
 char* get_extension(struct data file); // Use struct data
 long directory_size(char *path); 
+char* convert_size(long bytes);
 
 // File/Folder I/O
 void save_with_metadata(const char *path, struct data files[], int &n); 

@@ -4,7 +4,7 @@ const float WINDOW_W = 1200.0f;
 const float WINDOW_H = 800.0f;
 const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
-const int VISIBLE_ITEMS = 23;
+const int VISIBLE_ITEMS = 22;
 const unsigned int FONT_SIZE = 20;
 const unsigned int NAME_MAX_LEN = 18, SIZE_MAX_LEN = 6;
 char icon_path[PATH_MAX_LEN];
@@ -26,8 +26,8 @@ struct button_data{
 } button[10], right_click_button[10];
 
 void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
-    button.shape.setSize(sf::Vector2f(200, 50));
-    button.shape.setPosition(sf::Vector2f(x+200*(i-1), y)); 
+    button.shape.setSize(sf::Vector2f(171.43, 50));
+    button.shape.setPosition(sf::Vector2f(x+171.43*(i-1), y)); 
     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
     bool isHovering = button.shape.getGlobalBounds().contains(mousePos);
     if(isHovering) 
@@ -42,7 +42,10 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
         button_text.setFillColor(sf::Color::Black);
     else button_text.setFillColor(sf::Color::White);
     sf::FloatRect textBounds = button_text.getLocalBounds();
-    button_text.setPosition(sf::Vector2f(x + 200*(i-1) + 75.0f, y + 15.0f));
+    sf::Vector2f button_pos = button.shape.getPosition();
+    float text_x = button_pos.x + (171.43/2.0f) - (textBounds.size.x / 2.0f);
+    float text_y = button_pos.y + (50 / 2.0f) - (textBounds.size.y / 2.0f);
+    button_text.setPosition(sf::Vector2f(text_x-textBounds.position.x, text_y-textBounds.position.y));
     window.draw(button.shape);
     window.draw(button_text);
 }
@@ -251,16 +254,18 @@ int main() {
     }
     button[1].name = "Copy";
     button[2].name = "Move";
-    button[3].name = "New Folder";
-    button[4].name = "Delete";
-    button[5].name = "Rename";
-    button[6].name = "Search";
+    button[3].name = "Delete";
+    button[4].name = "Rename";
+    button[5].name = "New Folder";
+    button[6].name = "New File";
+    button[7].name = "Search";
     right_click_button[1].name = "Copy";
     right_click_button[2].name = "Move";
-    right_click_button[3].name = "New Folder";
-    right_click_button[4].name = "Delete";
-    right_click_button[5].name = "Rename";
-    right_click_button[6].name = "Search";
+    right_click_button[3].name = "Delete";
+    right_click_button[4].name = "Rename";
+    right_click_button[5].name = "New Folder";
+    right_click_button[6].name = "New File";
+    right_click_button[7].name = "Search";
     // Definirea parametrilor panourilor pentru logica de click
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
     const float LEFT_PANE_X = PADDING;
@@ -523,14 +528,20 @@ int main() {
                         input_active = false;
                         strcpy(new_name,input.c_str());
                         if (index_side) {
-                            if (active_action == 3) {
+                            if (active_action == 4) 
+                                file_rename(documents_path, files_right[current_it].name, new_name, files_right, size_right);
+                            else if (active_action == 5) {
                                 create_folder(documents_path, new_name, files_right, size_right);
                                 idx.clear();
                                 idx.insert(size_right - 1);
                             }
-                            else if (active_action == 5) 
-                                file_rename(documents_path, files_right[current_it].name, new_name, files_right, size_right);
                             else if (active_action == 6) {
+                                create_file(documents_path, new_name, files_right, size_right);
+                                save_with_metadata(documents_path, files_right, size_right);
+                                idx.clear();
+                                idx.insert(size_right - 1);
+                            }
+                            else if (active_action == 7) {
                                 idx.clear();
                                 found = 0;
                                 active_search = 2;
@@ -541,14 +552,20 @@ int main() {
                             }
                         }
                         else {
-                            if (active_action == 3) {
+                            if (active_action == 4) 
+                                file_rename(path, files_left[current_it].name, new_name, files_left, size_left);
+                            else if (active_action == 5) {
                                 create_folder(path, new_name, files_left, size_left);
                                 idx.clear();
                                 idx.insert(size_left - 1);
                             }
-                            else if (active_action == 5) 
-                                file_rename(path, files_left[current_it].name, new_name, files_left, size_left);
                             else if (active_action == 6) {
+                                create_file(path, new_name, files_left, size_left);
+                                save_with_metadata(path, files_left, size_left);
+                                idx.clear();
+                                idx.insert(size_left - 1);
+                            }
+                            else if (active_action == 7) {
                                 idx.clear();
                                 found = 0;
                                 active_search = 1;
@@ -583,7 +600,7 @@ int main() {
                         if (*current_scroll > 0) (*current_scroll)--;
                     }
                     else if (scroll->delta < 0) {
-                        if (*current_scroll + 23 < current_size) (*current_scroll)++;
+                        if (*current_scroll + VISIBLE_ITEMS < current_size) (*current_scroll)++;
                     }
                 }
             }    
@@ -612,23 +629,29 @@ int main() {
 
         sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
         int cnt = 0;
-        for (int i = 1;i <= 6;++i) {
+        for (int i = 1;i <= 7;++i) {
             SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
             if(right_click)
                 RightClickButton(window, font, right_click_x, right_click_y, right_click_button[i], i);
                 if (UpdateButton(mousePos, button[i]) || (right_click && UpdateButton(mousePos, right_click_button[i]))) {
                 // pentru cazul in care este selectat un fisier din panoul stang
                 if (!index_side) {
-                    if (i == 3) {
+                    if (i == 5) {
                         input_active = true; 
                         input = "";
-                        active_action = 3;
+                        active_action = 5;
                         continue;
                     }
-                    if (i == 6) {
+                    else if (i == 6) {
                         input_active = true; 
                         input = "";
                         active_action = 6;
+                        continue;
+                    }
+                    else if (i == 7) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 7;
                         continue;
                     }
                     std::set<int>::iterator it;
@@ -640,8 +663,8 @@ int main() {
                             save_with_metadata(path, files_left, size_left);
                             save_with_metadata(documents_path, files_right, size_right);
                         }
-                        else if (i == 4) file_delete(path,files_left[*it].name, files_left, size_left);
-                        else if (i == 5){
+                        else if (i == 3) file_delete(path,files_left[*it].name, files_left, size_left);
+                        else if (i == 4){
                             if(cnt > 1)
                                 printf("Nu puteti redenumi mai mult de un fisier.");
                             else {
@@ -649,7 +672,7 @@ int main() {
                                 // input = "";
                                 // strcpy(input, files_left[*it].name);
                                 input.assign(files_left[*it].name);
-                                active_action = 5; 
+                                active_action = 4; 
                                 current_it = *it;
                             }
                         }
@@ -657,16 +680,22 @@ int main() {
                 }
                 // pentru cazul in care este selectat un fisier din panoul drept
                 else if (index_side) {
-                    if (i == 3) {
+                    if (i == 5) {
                         input_active = true; 
                         input = "";
-                        active_action = 3;
+                        active_action = 5;
                         continue;
                     }
                     if (i == 6) {
                         input_active = true; 
                         input = "";
                         active_action = 6;
+                        continue;
+                    }
+                    else if (i == 7) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 7;
                         continue;
                     }
                     std::set<int>::iterator it;
@@ -677,11 +706,11 @@ int main() {
                             save_with_metadata(path, files_left, size_left);
                             save_with_metadata(documents_path, files_right, size_right);
                         }
-                        else if (i == 4) file_delete(documents_path, files_right[*it].name, files_right, size_right);
-                        else if (i == 5) {
+                        else if (i == 3) file_delete(documents_path, files_right[*it].name, files_right, size_right);
+                        else if (i == 4) {
                             input_active = true; 
-                            input = "";
-                            active_action = 5; 
+                            input.assign(files_right[*it].name);
+                            active_action = 4; 
                             current_it = *it;
                         }
                     }

@@ -28,8 +28,9 @@ struct button_data{
 } button[10], right_click_button[10], left_pane_headers[5], right_pane_headers[5];
 
 void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
-    button.shape.setSize(sf::Vector2f(171.43, 50));
-    button.shape.setPosition(sf::Vector2f(x+171.43*(i-1), y)); 
+    float btnSize = WINDOW_W / 7;
+    button.shape.setSize(sf::Vector2f(btnSize, 50));
+    button.shape.setPosition(sf::Vector2f(x+btnSize*(i-1), y)); 
     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
     bool isHovering = button.shape.getGlobalBounds().contains(mousePos);
     if(isHovering) 
@@ -45,7 +46,7 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     else button_text.setFillColor(sf::Color::White);
     sf::FloatRect textBounds = button_text.getLocalBounds();
     sf::Vector2f button_pos = button.shape.getPosition();
-    float text_x = button_pos.x + (171.43/2.0f) - (textBounds.size.x / 2.0f);
+    float text_x = button_pos.x + (btnSize/2.0f) - (textBounds.size.x / 2.0f);
     float text_y = button_pos.y + (50 / 2.0f) - (textBounds.size.y / 2.0f);
     button_text.setPosition(sf::Vector2f(text_x-textBounds.position.x, text_y-textBounds.position.y));
     window.draw(button.shape);
@@ -270,7 +271,8 @@ int main() {
     right_click_button[3].name = "New Folder";
     right_click_button[4].name = "Delete";
     right_click_button[5].name = "Rename";
-    right_click_button[6].name = "Search";
+    right_click_button[6].name = "New File";
+    right_click_button[7].name = "Search";
     left_pane_headers[1].name = "Nume";
     left_pane_headers[2].name = "Data";
     left_pane_headers[3].name = "Tip";
@@ -654,7 +656,7 @@ int main() {
         PaneHeader(window, RIGHT_PANE_X + size_offset, PADDING + 30, PANE_W - size_offset, 25, right_pane_headers[4]);
 
 
-        for (int i = 1;i <= 6;++i) {
+        for (int i = 1;i <= 7;++i) {
             SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
             if(right_click)
                 RightClickButton(window, font, right_click_x, right_click_y, right_click_button[i], i);

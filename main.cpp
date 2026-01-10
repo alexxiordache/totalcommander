@@ -1,12 +1,12 @@
 #include "utils.h"
 
-const float WINDOW_W = 1200.0f;
-const float WINDOW_H = 800.0f;
+const float WINDOW_W = 1350.0f;
+const float WINDOW_H = 900.0f;
 const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
-const int VISIBLE_ITEMS = 23;
+const int VISIBLE_ITEMS = 27;
 const unsigned int FONT_SIZE = 20;
-const unsigned int NAME_MAX_LEN = 18, SIZE_MAX_LEN = 6;
+const unsigned int NAME_MAX_LEN = 18, SIZE_MAX_LEN = 11;
 char icon_path[PATH_MAX_LEN];
 bool index_side = 0; // 0 - stanga, 1 - dreapta
 sf::Font font;
@@ -18,12 +18,14 @@ int active_search;
 int scroll_left, scroll_right;
 bool right_click;
 int right_click_x, right_click_y;
+float name_offset = 5.0f, date_offset = 250.0f, type_offset = 450.0f, size_offset = 525.0f; 
+
 
 struct button_data{
     sf::RectangleShape shape;
     std::string name;
     bool isPressed;
-} button[10], right_click_button[10];
+} button[10], right_click_button[10], left_pane_headers[5], right_pane_headers[5];
 
 void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
     button.shape.setSize(sf::Vector2f(200, 50));
@@ -69,6 +71,23 @@ void RightClickButton(sf::RenderWindow& window, const sf::Font& font, float x, f
     window.draw(button_text);
 }
 
+void PaneHeader(sf::RenderWindow& window, float x, float y, float size_x, float size_y, button_data &button) {
+    button.shape.setSize(sf::Vector2f(size_x - PADDING, size_y));
+    button.shape.setPosition(sf::Vector2f(x, y)); 
+    sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    bool isHovering = button.shape.getGlobalBounds().contains(mousePos);
+    if(isHovering) 
+        button.shape.setFillColor(sf::Color(37, 150, 190, 100)); 
+    else 
+        button.shape.setFillColor(sf::Color::White); 
+    sf::Text button_text(font, button.name, FONT_SIZE);
+    button_text.setFillColor(sf::Color::Black);
+    sf::FloatRect textBounds = button_text.getLocalBounds();
+    button_text.setPosition(sf::Vector2f(x + PADDING, y));
+    window.draw(button.shape);
+    window.draw(button_text);
+}
+
 bool UpdateButton(const sf::Vector2f& mousePos, button_data &button) {
     bool actionTriggered = false; 
     if (button.shape.getGlobalBounds().contains(mousePos)) {
@@ -101,24 +120,10 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
     pane_bg.setOutlineColor(sf::Color(100, 100, 100));
     window.draw(pane_bg);
 
-    sf::Text path_text(font, path_display, FONT_SIZE), name_text(font, "Nume", FONT_SIZE), date_text(font, "Data", FONT_SIZE), type_text(font, "Tip", FONT_SIZE), size_text(font, "Dimensiune", FONT_SIZE);
-    float name_offset = 5.0f, date_offset = 250.0f, type_offset = 400.0f, size_offset = 475.0f; 
+    sf::Text path_text(font, path_display, FONT_SIZE);
     path_text.setPosition(sf::Vector2f(x + 5.0f, y + 5.0f));
     path_text.setFillColor(sf::Color::Black); 
     window.draw(path_text);
-
-    name_text.setPosition(sf::Vector2f(x + name_offset, y + 30.0f));
-    name_text.setFillColor(sf::Color::Black); 
-    window.draw(name_text);
-    date_text.setPosition(sf::Vector2f(x + date_offset, y + 30.0f));
-    date_text.setFillColor(sf::Color::Black); 
-    window.draw(date_text);
-    type_text.setPosition(sf::Vector2f(x + type_offset, y + 30.0f));
-    type_text.setFillColor(sf::Color::Black); 
-    window.draw(type_text);
-    size_text.setPosition(sf::Vector2f(x + size_offset, y + 30.0f));
-    size_text.setFillColor(sf::Color::Black); 
-    window.draw(size_text);
 
 
     const float LIST_START_Y = y + 30.0f + ITEM_HEIGHT + PADDING; 
@@ -146,6 +151,7 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         std::strftime(item_date, sizeof(item_date), "%Y-%m-%d %H:%M", time_info);
         char item_name[PATH_MAX_LEN];
         strncpy(item_name, files[file_idx].name, NAME_MAX_LEN);
+        item_name[NAME_MAX_LEN] = 0;
         char* item_size = convert_size(files[file_idx].size);
         char item_size_arr[32];
         strncpy(item_size_arr, item_size, SIZE_MAX_LEN);
@@ -154,7 +160,7 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         const sf::Texture texture(ext_path);
         sf::RectangleShape icon_rect;
         icon_rect.setSize(sf::Vector2f(16.0f, 16.0f));
-        sf::Text item_name_text(font, item_name, FONT_SIZE), item_date_text(font, item_date, 18), 
+        sf::Text item_name_text(font, item_name, FONT_SIZE), item_date_text(font, item_date, FONT_SIZE), 
         item_type_text(font, get_extension(files[file_idx]), FONT_SIZE), item_size_text(font, item_size_arr, FONT_SIZE);        
         
 
@@ -261,6 +267,15 @@ int main() {
     right_click_button[4].name = "Delete";
     right_click_button[5].name = "Rename";
     right_click_button[6].name = "Search";
+    left_pane_headers[1].name = "Nume";
+    left_pane_headers[2].name = "Data";
+    left_pane_headers[3].name = "Tip";
+    left_pane_headers[4].name = "Dimensiune";
+    right_pane_headers[1].name = "Nume";
+    right_pane_headers[2].name = "Data";
+    right_pane_headers[3].name = "Tip";
+    right_pane_headers[4].name = "Dimensiune";
+
     // Definirea parametrilor panourilor pentru logica de click
     const float PANE_W = (WINDOW_W - 3 * PADDING) / 2.0f;
     const float LEFT_PANE_X = PADDING;
@@ -612,6 +627,17 @@ int main() {
 
         sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
         int cnt = 0;
+        PaneHeader(window, name_offset + PADDING, PADDING + 30, date_offset - name_offset, 25, left_pane_headers[1]);
+        PaneHeader(window, date_offset, PADDING + 30, type_offset - date_offset, 25, left_pane_headers[2]);
+        PaneHeader(window, type_offset, PADDING + 30, size_offset - type_offset, 25, left_pane_headers[3]);
+        PaneHeader(window, size_offset, PADDING + 30, PANE_W - size_offset, 25, left_pane_headers[4]);
+        
+        PaneHeader(window, RIGHT_PANE_X + name_offset, PADDING + 30, date_offset - name_offset, 25, right_pane_headers[1]);
+        PaneHeader(window, RIGHT_PANE_X + date_offset, PADDING + 30, type_offset - date_offset, 25, right_pane_headers[2]);
+        PaneHeader(window, RIGHT_PANE_X + type_offset, PADDING + 30, size_offset - type_offset, 25, right_pane_headers[3]);
+        PaneHeader(window, RIGHT_PANE_X + size_offset, PADDING + 30, PANE_W - size_offset, 25, right_pane_headers[4]);
+
+
         for (int i = 1;i <= 6;++i) {
             SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
             if(right_click)
@@ -701,3 +727,4 @@ int main() {
         window.display();
     }
 }
+

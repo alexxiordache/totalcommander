@@ -32,7 +32,7 @@ struct data{
 extern struct data files_left[MAX_FILES], files_right[MAX_FILES];
 extern int last_sort_order;
 extern int size_left, size_right;
-extern char last_sort_option[30];
+extern char last_sort_option[20];
 extern char left_history[MAX_HISTORY][PATH_MAX_LEN], right_history[MAX_HISTORY][PATH_MAX_LEN];
 extern int left_top, right_top;
 extern struct data search_result[MAX_FILES];

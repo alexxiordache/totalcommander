@@ -745,6 +745,29 @@ int main() {
                     }
                 }
             }
+            sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+            if(i < 5 && UpdateButton(mousePos, left_pane_headers[i])) {
+                bool sort_order_option = 0;
+                char option_arr[20];
+                int string_size = left_pane_headers[i].name.size();
+                for(int j = 0; j < string_size; j++) 
+                    option_arr[j] = left_pane_headers[i].name[j];
+                option_arr[string_size] = 0;
+                if(!strcmp(option_arr, last_sort_option))
+                    sort_order_option = last_sort_order^1;
+                sort_files(option_arr, sort_order_option, files_left, size_left);
+            }
+            else if(i < 5 && UpdateButton(mousePos, right_pane_headers[i])) {
+                bool sort_order_option = 0;
+                char option_arr[20];
+                int string_size = right_pane_headers[i].name.size();
+                for(int j = 0; j < string_size; j++) 
+                    option_arr[j] = right_pane_headers[i].name[j];
+                option_arr[string_size] = 0;
+                if(!strcmp(option_arr, last_sort_option))
+                    sort_order_option = last_sort_order^1;
+                sort_files(option_arr, sort_order_option, files_right, size_right);
+            }
         }
         if(isDragging) {
             float x1 = std::min(start_x, end_x), x2 = std::max(start_x, end_x), y1 = std::min(start_y, end_y), y2 = std::max(start_y, end_y);

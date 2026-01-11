@@ -3,7 +3,7 @@
 struct data files_left[MAX_FILES], files_right[MAX_FILES];
 int size_left = 0, size_right = 0; 
 int last_sort_order = 0;   
-char last_sort_option[30] = "Nume"; 
+char last_sort_option[20] = "Nume"; 
 char left_history[MAX_HISTORY][PATH_MAX_LEN], right_history[MAX_HISTORY][PATH_MAX_LEN];
 int left_top = 0, right_top = 0;
 data search_result[MAX_FILES];
@@ -33,7 +33,20 @@ int compare_strings(char a[], char b[]) {
     if(strlen(b) < n)
         n = strlen(b);
     for(int i = 0; i < n; i++) {
-        if(lower(a[i]) > lower(b[i])) return 1;
+        // ordine: punct/semne, cifre, litere
+        if(isalpha(a[i]) && !isalpha(b[i])) 
+            return 1;
+        else if(!isalpha(a[i]) && isalpha(b[i]))
+            return -1;
+        else if(!isalpha(a[i]) && !isalpha(b[i])) {
+            if(isdigit(a[i]) && !isdigit(b[i]))
+                return 1;
+            else if(!isdigit(a[i]) && isdigit(b[i]))
+                return -1;
+            else if(a[i] < b[i]) return -1;
+            else if(a[i] > b[i]) return 1;
+        }
+        else if(lower(a[i]) > lower(b[i])) return 1;
         else if(lower(a[i]) < lower(b[i])) return -1;
     }
     if(strlen(a) == strlen(b)) return 0;
@@ -61,9 +74,9 @@ bool sort_compare(data file1, data file2, char option[]) {
         if(rez <= 0) return 0;
         return 1;
     }
-    if(!strcmp(option, "Data Modificarii"))
+    if(!strcmp(option, "Data"))
         return file1.date < file2.date;
-    else if(!strcmp(option, "Tipul Fisierului"))
+    else if(!strcmp(option, "Tip"))
     {
         char *ext1 = get_extension(file1), *ext2 = get_extension(file2);
         int rez = compare_strings(ext1, ext2);

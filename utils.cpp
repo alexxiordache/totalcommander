@@ -160,6 +160,9 @@ void search(char a[], const char *path, bool &found) {
         if (S_ISDIR(file_info.st_mode)) {
             if (strings_search(entry->d_name, a)) {
                 strcpy(search_result[size_search].name, full_path);
+                search_result[size_search].isDir = true;
+                search_result[size_search].date = file_info.st_mtime;
+                search_result[size_search].size = directory_size(full_path);
                 size_search++;
                 found = 1;
             }
@@ -167,6 +170,9 @@ void search(char a[], const char *path, bool &found) {
         } 
         else if (strings_search(entry->d_name, a)) {
             strcpy(search_result[size_search].name, full_path);
+            search_result[size_search].date = file_info.st_mtime;
+            search_result[size_search].isDir = false;
+            search_result[size_search].size = (long)file_info.st_size;
             size_search++;
             found = 1;
         }
@@ -495,7 +501,7 @@ char* get_executable_directory() {
 
 void navigate(char *current_path, const char *target_name, data files[], int &size) {
     if (strcmp(target_name, "..") == 0) {
-        char* last_slash = strrchr(current_path, '\\');
+        char *last_slash = strrchr(current_path, '\\');
         if (last_slash) {
             *last_slash = '\0';
         }
@@ -503,15 +509,19 @@ void navigate(char *current_path, const char *target_name, data files[], int &si
             strcat(current_path, "\\");
         }
     } 
-    else {
-        strcat(current_path, "\\");
-        strcat(current_path, target_name);
+    else if (strcmp(current_path, target_name) != 0){
+        if (strlen(current_path) == 3) {
+            strcat(current_path, target_name);
+        }
+        else {
+            strcat(current_path, "\\");
+            strcat(current_path, target_name);
+        }
     }
-
     save_with_metadata(current_path, files, size);
 }
 
-void open_file(const char* folder_path, const char* file_name) {
+void open_file(const char *folder_path, const char *file_name) {
     char full_path[PATH_MAX_LEN];
     if(!strstr(file_name, folder_path)) {
         // daca in full_path nu este deja file_name

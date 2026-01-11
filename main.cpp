@@ -41,9 +41,19 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     button.shape.setOutlineColor(sf::Color(100, 100, 100));
 
     sf::Text button_text(font, button.name, FONT_SIZE);
-    if(isHovering)
+    std::string f_shortcut;
+    f_shortcut += "F";
+    f_shortcut += static_cast<char>('0'+i);
+    sf::Text shortcut(font, f_shortcut, 15);
+    shortcut.setPosition(sf::Vector2f(x+btnSize*(i-1)+3, y+2));
+    if(isHovering){
         button_text.setFillColor(sf::Color::Black);
-    else button_text.setFillColor(sf::Color::White);
+        shortcut.setFillColor(sf::Color::Black);
+    }
+    else {
+        button_text.setFillColor(sf::Color::White);
+        shortcut.setFillColor(sf::Color::White);
+    }
     sf::FloatRect textBounds = button_text.getLocalBounds();
     sf::Vector2f button_pos = button.shape.getPosition();
     float text_x = button_pos.x + (btnSize/2.0f) - (textBounds.size.x / 2.0f);
@@ -51,6 +61,7 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     button_text.setPosition(sf::Vector2f(text_x-textBounds.position.x, text_y-textBounds.position.y));
     window.draw(button.shape);
     window.draw(button_text);
+    window.draw(shortcut);
 }
 
 void RightClickButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
@@ -334,7 +345,15 @@ int main() {
                                 strcpy(left_history[left_top], path); 
                                 left_top++;
                             } 
-                            navigate(path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                            if (active_search == 1) {
+                                        char search_path[PATH_MAX_LEN];
+                                        strcpy(search_path, files_left[clicked_index+scroll_left].name);
+                                        navigate(search_path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                                        
+                                    }
+                                    else {
+                                        navigate(path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                                    }
                             scroll_left = 0;
                             idx.clear();
                         }
@@ -346,7 +365,14 @@ int main() {
                                 strcpy(left_history[left_top], path); 
                                 left_top++;
                             } 
-                            navigate(documents_path, files_right[clicked_index+scroll_right].name, files_right, size_right);
+                            if (active_search == 2) {
+                                char search_path[PATH_MAX_LEN];
+                                strcpy(search_path, files_right[clicked_index+scroll_right].name);
+                                 navigate(search_path, files_right[clicked_index+scroll_right].name, files_right, size_right);        
+                            }
+                            else {
+                                navigate(documents_path, files_right[clicked_index+scroll_right].name, files_right, size_right);
+                            }
                             scroll_right = 0;
                             idx.clear();
                         }
@@ -362,17 +388,103 @@ int main() {
                     strcpy(path, documents_path);
                     strcpy(documents_path, aux);
                 }
+                if (!input_active) {
+                    if (keypressed->code == sf::Keyboard::Key::F5) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 5;
+                        continue;
+                    }
+                    if (keypressed->code == sf::Keyboard::Key::F6) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 6;
+                        continue;
+                    }
+                    else if (keypressed->code == sf::Keyboard::Key::F7) {
+                        input_active = true; 
+                        input = "";
+                        active_action = 7;
+                        continue;
+                    }
+                    if (index_side == 0) {
+                        std::set<int>::iterator it;
+                        int file_offset = 0;
+                        for (it = idx.begin(); it != idx.end(); it++) {
+                            if (keypressed->code == sf::Keyboard::Key::F1) {
+                                copy(path, files_left[*it-file_offset].name, documents_path, files_right, size_right);
+                            }
+                            else if (keypressed->code == sf::Keyboard::Key::F2) {
+                                move(path, files_left[*it-file_offset].name, documents_path, files_left, size_left, files_right, size_right);
+                                save_with_metadata(path, files_left, size_left);
+                                save_with_metadata(documents_path, files_right, size_right);
+                                file_offset++;
+                            }
+                            else if (keypressed->code == sf::Keyboard::Key::F3) {
+                                file_delete(path,files_left[*it-file_offset].name, files_left, size_left);
+                                save_with_metadata(path, files_left, size_left);
+                                file_offset++;
+                            }
+                            else if (keypressed->code == sf::Keyboard::Key::F4){
+                                if(idx.size() > 1)
+                                    printf("Nu puteti redenumi mai mult de un fisier.");
+                                else {
+                                    input_active = true; 
+                                    input.assign(files_left[*it].name);
+                                    active_action = 4; 
+                                    current_it = *it;
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        std::set<int>::iterator it;
+                        int file_offset = 0;
+                        for (it = idx.begin(); it != idx.end(); it++) {
+                            if (keypressed->code == sf::Keyboard::Key::F1) copy(documents_path, files_right[*it-file_offset].name, path, files_left, size_left);
+                            else if (keypressed->code == sf::Keyboard::Key::F2) {
+                                move(documents_path, files_right[*it-file_offset].name, path, files_right, size_right, files_left, size_left);
+                                save_with_metadata(path, files_left, size_left);
+                                save_with_metadata(documents_path, files_right, size_right);
+                                file_offset++;
+                            }
+                            else if (keypressed->code == sf::Keyboard::Key::F3) {
+                                file_delete(documents_path, files_right[*it-file_offset].name, files_right, size_right);
+                                save_with_metadata(documents_path, files_right, size_right);
+                                file_offset++;
+                            }
+                            else if (keypressed->code == sf::Keyboard::Key::F4) {
+                                input_active = true; 
+                                input.assign(files_right[*it].name);
+                                active_action = 4; 
+                                current_it = *it;
+                            }
+                        }
+                    }
+                }
                 if (keypressed->code == sf::Keyboard::Key::Backspace && !input_active) {
                     if (index_side == 0 && left_top > 0) {
                         left_top--;
+                        scroll_left = 0;
                         strcpy(path, left_history[left_top]);
                         save_with_metadata(path, files_left, size_left);
                         idx.clear();
-                    } 
+                    }
+                    else if (index_side == 0 && left_top == 0) {
+                        navigate(path, "..", files_left, size_left);
+                        scroll_left = 0;
+                        idx.clear();
+                    }
                     else if (index_side == 1 && right_top > 0) {
                         right_top--;
+                        scroll_right = 0;
                         strcpy(documents_path, right_history[right_top]);
                         save_with_metadata(documents_path, files_right, size_right);
+                        idx.clear();
+                    }
+                    else if (index_side == 1 && right_top == 0) {
+                        navigate(documents_path, "..", files_right, size_right);
+                        scroll_right = 0;
                         idx.clear();
                     }
                 }
@@ -411,7 +523,15 @@ int main() {
                                         strcpy(left_history[left_top], path); 
                                         left_top++;
                                     } 
-                                    navigate(path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                                    if (active_search == 1) {
+                                        char search_path[PATH_MAX_LEN];
+                                        strcpy(search_path, files_left[clicked_index+scroll_left].name);
+                                        navigate(search_path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                                        
+                                    }
+                                    else {
+                                        navigate(path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                                    }
                                     scroll_left = 0;
                                     idx.clear();
                                 }
@@ -453,7 +573,15 @@ int main() {
                                         strcpy(right_history[right_top], documents_path); 
                                         right_top++;
                                     } 
-                                    navigate(documents_path, files_right[clicked_index+scroll_right].name, files_right, size_right);
+                                    if (active_search == 2) {
+                                        char search_path[PATH_MAX_LEN];
+                                        strcpy(search_path, files_right[clicked_index+scroll_right].name);
+                                        navigate(search_path, files_right[clicked_index+scroll_right].name, files_right, size_right);
+                                        
+                                    }
+                                    else {
+                                        navigate(documents_path, files_right[clicked_index+scroll_right].name, files_right, size_right);
+                                    }
                                     scroll_right = 0;
                                     idx.clear();
                                 }
@@ -713,7 +841,6 @@ int main() {
                     int file_offset = 0;
                     for (it = idx.begin(); it != idx.end(); it++) {
                         if (i == 1) {
-                            file_offset++;
                             copy(path, files_left[*it-file_offset].name, documents_path, files_right, size_right);
                         }
                         else if (i == 2) {
@@ -724,6 +851,7 @@ int main() {
                         }
                         else if (i == 3) {
                             file_delete(path,files_left[*it-file_offset].name, files_left, size_left);
+                            save_with_metadata(path, files_left, size_left);
                             file_offset++;
                         }
                         else if (i == 4){
@@ -731,8 +859,6 @@ int main() {
                                 printf("Nu puteti redenumi mai mult de un fisier.");
                             else {
                                 input_active = true; 
-                                // input = "";
-                                // strcpy(input, files_left[*it].name);
                                 input.assign(files_left[*it].name);
                                 active_action = 4; 
                                 current_it = *it;
@@ -772,6 +898,7 @@ int main() {
                         }
                         else if (i == 3) {
                             file_delete(documents_path, files_right[*it-file_offset].name, files_right, size_right);
+                            save_with_metadata(documents_path, files_right, size_right);
                             file_offset++;
                         }
                         else if (i == 4) {

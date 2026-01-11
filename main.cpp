@@ -140,8 +140,10 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         if (file_idx >= size) break;
         float item_y = LIST_START_Y + i * ITEM_HEIGHT;
         char *ext = get_extension(files[file_idx]);
-        if(!ext)
+        if(files[file_idx].isDir)
             ext = strdup("directory");
+        else if(!ext)
+            ext = strdup("default");
         strcpy(ext_path, icon_path);
         strcat(ext, ".png");
         strcat(ext_path, ext);
@@ -268,9 +270,9 @@ int main() {
     button[7].name = "Search";
     right_click_button[1].name = "Copy";
     right_click_button[2].name = "Move";
-    right_click_button[3].name = "New Folder";
-    right_click_button[4].name = "Delete";
-    right_click_button[5].name = "Rename";
+    right_click_button[3].name = "Delete";
+    right_click_button[4].name = "Rename";
+    right_click_button[5].name = "New Folder";
     right_click_button[6].name = "New File";
     right_click_button[7].name = "Search";
     left_pane_headers[1].name = "Nume";

@@ -4,7 +4,7 @@ const float WINDOW_W = 1350.0f;
 const float WINDOW_H = 900.0f;
 const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
-const int VISIBLE_ITEMS = 27;
+const int VISIBLE_ITEMS = 26;
 const unsigned int FONT_SIZE = 20;
 const unsigned int NAME_MAX_LEN = 18, SIZE_MAX_LEN = 11;
 char icon_path[PATH_MAX_LEN];
@@ -326,7 +326,7 @@ int main() {
                     }
                     // else window.close();
                 }
-                if(keypressed->code == sf::Keyboard::Key::Enter && idx.size() == 1) {
+                if(keypressed->code == sf::Keyboard::Key::Enter && idx.size() == 1 && !input_active) {
                     int clicked_index = *(idx.begin());
                     if(!index_side) {
                         if (files_left[clicked_index+scroll_left].isDir) {
@@ -673,7 +673,6 @@ int main() {
         }
 
         sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-        int cnt = 0;
         PaneHeader(window, name_offset + PADDING, PADDING + 30, date_offset - name_offset, 25, left_pane_headers[1]);
         PaneHeader(window, date_offset, PADDING + 30, type_offset - date_offset, 25, left_pane_headers[2]);
         PaneHeader(window, type_offset, PADDING + 30, size_offset - type_offset, 25, left_pane_headers[3]);
@@ -711,21 +710,24 @@ int main() {
                         continue;
                     }
                     std::set<int>::iterator it;
-                    int deleted = 0;
+                    int file_offset = 0;
                     for (it = idx.begin(); it != idx.end(); it++) {
-                    //for(int i = 0; i < cnt; i++)
-                        if (i == 1) copy(path, files_left[*it].name, documents_path, files_right, size_right);
+                        if (i == 1) {
+                            file_offset++;
+                            copy(path, files_left[*it-file_offset].name, documents_path, files_right, size_right);
+                        }
                         else if (i == 2) {
-                            move(path, files_left[*it].name, documents_path, files_left, size_left, files_right, size_right);
+                            move(path, files_left[*it-file_offset].name, documents_path, files_left, size_left, files_right, size_right);
                             save_with_metadata(path, files_left, size_left);
                             save_with_metadata(documents_path, files_right, size_right);
+                            file_offset++;
                         }
                         else if (i == 3) {
-                            file_delete(path,files_left[*it-deleted].name, files_left, size_left);
-                            deleted++;
+                            file_delete(path,files_left[*it-file_offset].name, files_left, size_left);
+                            file_offset++;
                         }
                         else if (i == 4){
-                            if(cnt > 1)
+                            if(idx.size() > 1)
                                 printf("Nu puteti redenumi mai mult de un fisier.");
                             else {
                                 input_active = true; 
@@ -759,14 +761,19 @@ int main() {
                         continue;
                     }
                     std::set<int>::iterator it;
+                    int file_offset = 0;
                     for (it = idx.begin(); it != idx.end(); it++) {
-                        if (i == 1) copy(documents_path, files_right[*it].name, path, files_left, size_left);
+                        if (i == 1) copy(documents_path, files_right[*it-file_offset].name, path, files_left, size_left);
                         else if (i == 2) {
-                            move(documents_path, files_right[*it].name, path, files_right, size_right, files_left, size_left);
+                            move(documents_path, files_right[*it-file_offset].name, path, files_right, size_right, files_left, size_left);
                             save_with_metadata(path, files_left, size_left);
                             save_with_metadata(documents_path, files_right, size_right);
+                            file_offset++;
                         }
-                        else if (i == 3) file_delete(documents_path, files_right[*it].name, files_right, size_right);
+                        else if (i == 3) {
+                            file_delete(documents_path, files_right[*it-file_offset].name, files_right, size_right);
+                            file_offset++;
+                        }
                         else if (i == 4) {
                             input_active = true; 
                             input.assign(files_right[*it].name);

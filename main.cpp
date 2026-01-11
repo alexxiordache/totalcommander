@@ -326,6 +326,33 @@ int main() {
                     }
                     // else window.close();
                 }
+                if(keypressed->code == sf::Keyboard::Key::Enter && idx.size() == 1) {
+                    int clicked_index = *(idx.begin());
+                    if(!index_side) {
+                        if (files_left[clicked_index+scroll_left].isDir) {
+                            if (left_top < MAX_HISTORY) {
+                                strcpy(left_history[left_top], path); 
+                                left_top++;
+                            } 
+                            navigate(path, files_left[clicked_index+scroll_left].name, files_left, size_left);
+                            scroll_left = 0;
+                            idx.clear();
+                        }
+                        else open_file(path, files_left[clicked_index+scroll_left].name);
+                    }
+                    else {
+                        if (files_right[clicked_index+scroll_right].isDir) {
+                            if (left_top < MAX_HISTORY) {
+                                strcpy(left_history[left_top], path); 
+                                left_top++;
+                            } 
+                            navigate(documents_path, files_right[clicked_index+scroll_right].name, files_right, size_right);
+                            scroll_right = 0;
+                            idx.clear();
+                        }
+                        else open_file(documents_path, files_right[clicked_index+scroll_right].name);
+                    }
+                }
                 if (keypressed->code == sf::Keyboard::Key::Tab) { 
                     std::swap(files_left, files_right);
                     std::swap(size_left, size_right);
@@ -684,6 +711,7 @@ int main() {
                         continue;
                     }
                     std::set<int>::iterator it;
+                    int deleted = 0;
                     for (it = idx.begin(); it != idx.end(); it++) {
                     //for(int i = 0; i < cnt; i++)
                         if (i == 1) copy(path, files_left[*it].name, documents_path, files_right, size_right);
@@ -692,7 +720,10 @@ int main() {
                             save_with_metadata(path, files_left, size_left);
                             save_with_metadata(documents_path, files_right, size_right);
                         }
-                        else if (i == 3) file_delete(path,files_left[*it].name, files_left, size_left);
+                        else if (i == 3) {
+                            file_delete(path,files_left[*it-deleted].name, files_left, size_left);
+                            deleted++;
+                        }
                         else if (i == 4){
                             if(cnt > 1)
                                 printf("Nu puteti redenumi mai mult de un fisier.");

@@ -412,13 +412,16 @@ int main() {
                         int file_offset = 0;
                         for (it = idx.begin(); it != idx.end(); it++) {
                             if (keypressed->code == sf::Keyboard::Key::F1) {
-                                copy(path, files_left[*it-file_offset].name, documents_path, files_right, size_right);
+                                bool created = 1;
+                                copy(path, files_left[*it-file_offset].name, documents_path, files_right, size_right, created);
                             }
                             else if (keypressed->code == sf::Keyboard::Key::F2) {
-                                move(path, files_left[*it-file_offset].name, documents_path, files_left, size_left, files_right, size_right);
+                                bool created = 1;
+                                move(path, files_left[*it-file_offset].name, documents_path, files_left, size_left, files_right, size_right, created);
                                 save_with_metadata(path, files_left, size_left);
                                 save_with_metadata(documents_path, files_right, size_right);
-                                file_offset++;
+                                if (created)
+                                    file_offset++;
                             }
                             else if (keypressed->code == sf::Keyboard::Key::F3) {
                                 file_delete(path,files_left[*it-file_offset].name, files_left, size_left);
@@ -441,12 +444,17 @@ int main() {
                         std::set<int>::iterator it;
                         int file_offset = 0;
                         for (it = idx.begin(); it != idx.end(); it++) {
-                            if (keypressed->code == sf::Keyboard::Key::F1) copy(documents_path, files_right[*it-file_offset].name, path, files_left, size_left);
+                            if (keypressed->code == sf::Keyboard::Key::F1) {
+                                bool created = 1;
+                                copy(documents_path, files_right[*it-file_offset].name, path, files_left, size_left, created);
+                            }
                             else if (keypressed->code == sf::Keyboard::Key::F2) {
-                                move(documents_path, files_right[*it-file_offset].name, path, files_right, size_right, files_left, size_left);
+                                bool created = 1;
+                                move(documents_path, files_right[*it-file_offset].name, path, files_right, size_right, files_left, size_left, created);
                                 save_with_metadata(path, files_left, size_left);
                                 save_with_metadata(documents_path, files_right, size_right);
-                                file_offset++;
+                                if (created)
+                                    file_offset++;
                             }
                             else if (keypressed->code == sf::Keyboard::Key::F3) {
                                 file_delete(documents_path, files_right[*it-file_offset].name, files_right, size_right);
@@ -841,13 +849,16 @@ int main() {
                     int file_offset = 0;
                     for (it = idx.begin(); it != idx.end(); it++) {
                         if (i == 1) {
-                            copy(path, files_left[*it-file_offset].name, documents_path, files_right, size_right);
+                            bool created = 1;
+                            copy(path, files_left[*it-file_offset].name, documents_path, files_right, size_right, created);
                         }
                         else if (i == 2) {
-                            move(path, files_left[*it-file_offset].name, documents_path, files_left, size_left, files_right, size_right);
+                            bool created = 1;
+                            move(path, files_left[*it-file_offset].name, documents_path, files_left, size_left, files_right, size_right, created);
                             save_with_metadata(path, files_left, size_left);
                             save_with_metadata(documents_path, files_right, size_right);
-                            file_offset++;
+                            if (created)
+                                file_offset++;
                         }
                         else if (i == 3) {
                             file_delete(path,files_left[*it-file_offset].name, files_left, size_left);
@@ -889,12 +900,17 @@ int main() {
                     std::set<int>::iterator it;
                     int file_offset = 0;
                     for (it = idx.begin(); it != idx.end(); it++) {
-                        if (i == 1) copy(documents_path, files_right[*it-file_offset].name, path, files_left, size_left);
+                        if (i == 1) {
+                            bool created = 1;
+                            copy(documents_path, files_right[*it-file_offset].name, path, files_left, size_left, created);
+                        }
                         else if (i == 2) {
-                            move(documents_path, files_right[*it-file_offset].name, path, files_right, size_right, files_left, size_left);
+                            bool created = 1;
+                            move(documents_path, files_right[*it-file_offset].name, path, files_right, size_right, files_left, size_left, created);
                             save_with_metadata(path, files_left, size_left);
                             save_with_metadata(documents_path, files_right, size_right);
-                            file_offset++;
+                            if (created)
+                                file_offset++;
                         }
                         else if (i == 3) {
                             file_delete(documents_path, files_right[*it-file_offset].name, files_right, size_right);

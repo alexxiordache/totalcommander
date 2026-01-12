@@ -56,8 +56,8 @@ void create_file(const char *path, const char *filename, struct data files[], in
 void create_folder(const char*path, const char *foldername, struct data files[], int &n);
 void file_delete(char* path, char* filename, struct data files[], int &n);
 void file_rename(const char* path, const char* old_filename, const char* new_filename, struct data files[], int &n);
-void copy(char* path, char* filename, char* dest_path, struct data files[], int &n);
-void move(char* path, char* filename, char* dest_path, struct data files1[], int &n1, struct data files2[], int &n2);
+void copy(char* path, char* filename, char* dest_path, struct data files[], int &n, bool &created);
+void move(char* path, char* filename, char* dest_path, struct data files1[], int &n1, struct data files2[], int &n2, bool &created);
 void navigate(char* current_path, const char* target_name, struct data files[], int& size);
 void open_file(const char* folder_path, const char* file_name);
 

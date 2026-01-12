@@ -83,8 +83,7 @@ bool sort_compare(data file1, data file2, char option[]) {
         if(rez <= 0) return 0;
         return 1;
     }
-    else if(!strcmp(option, "Dimensiune"))
-        return file1.size < file2.size;
+    return file1.size < file2.size;
 }
 
 void sort_files(char option[], bool order, data files[], int n) {
@@ -323,13 +322,22 @@ void file_rename(const char *path, const char *old_filename, const char *new_fil
 
 void copy(char *path, char *filename, char *dest_path, data dest_files[], int &n, bool &created) {
     char file_path[PATH_MAX_LEN];
+    char used_filename[PATH_MAX_LEN];
     char new_file_path[PATH_MAX_LEN];
     struct stat file_info, check;
     int m;
-    construct_full_path(file_path, path, filename);
-    construct_full_path(new_file_path, dest_path, filename);
+    strcpy(used_filename, filename);
+    if (strstr(used_filename, ":\\") != 0) {
+        strcpy(file_path, used_filename);
+        char *last_slash = strrchr(filename, '\\');
+        strcpy(used_filename, last_slash+1);
+    }
+    else {
+        construct_full_path(file_path, path, used_filename);
+    }
+    construct_full_path(new_file_path, dest_path, used_filename);
     if (stat(new_file_path, &check) == 0) {
-        fprintf(stdout, "File %s already exists. \n", filename);
+        fprintf(stdout, "File %s already exists. \n", used_filename);
         created = 0;
         return;
     }
@@ -338,7 +346,7 @@ void copy(char *path, char *filename, char *dest_path, data dest_files[], int &n
         return; 
     }
     if(S_ISDIR(file_info.st_mode)) {
-        create_folder(dest_path, filename, dest_files, n);
+        create_folder(dest_path, used_filename, dest_files, n);
         data* sub_files = new data[1000];
         save_with_metadata(file_path, sub_files, m);
         for(int i = 0; i < m; i++) {

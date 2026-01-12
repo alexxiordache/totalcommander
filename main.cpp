@@ -4,7 +4,7 @@ const float WINDOW_W = 1350.0f;
 const float WINDOW_H = 900.0f;
 const float PADDING = 10.0f;
 const float ITEM_HEIGHT = 30.0f;
-const int VISIBLE_ITEMS = 26;
+const int VISIBLE_ITEMS = 25;
 const unsigned int FONT_SIZE = 20;
 const unsigned int NAME_MAX_LEN = 18, SIZE_MAX_LEN = 11;
 char icon_path[PATH_MAX_LEN];
@@ -709,10 +709,13 @@ int main() {
                         input_active = false;
                         strcpy(new_name,input.c_str());
                         if (index_side) {
-                            if (active_action == 4) 
+                            if (active_action == 4) {
                                 file_rename(documents_path, files_right[current_it].name, new_name, files_right, size_right);
+                                save_with_metadata(documents_path, files_right, size_right);
+                            }
                             else if (active_action == 5) {
                                 create_folder(documents_path, new_name, files_right, size_right);
+                                save_with_metadata(documents_path, files_right, size_right);
                                 idx.clear();
                                 idx.insert(size_right - 1);
                             }
@@ -733,10 +736,13 @@ int main() {
                             }
                         }
                         else {
-                            if (active_action == 4) 
+                            if (active_action == 4) {
                                 file_rename(path, files_left[current_it].name, new_name, files_left, size_left);
+                                save_with_metadata(path, files_left, size_left);
+                            }
                             else if (active_action == 5) {
                                 create_folder(path, new_name, files_left, size_left);
+                                save_with_metadata(path, files_left, size_left);
                                 idx.clear();
                                 idx.insert(size_left - 1);
                             }

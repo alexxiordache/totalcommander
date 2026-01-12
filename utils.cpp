@@ -264,7 +264,6 @@ void file_delete(char *path, char *filename, data files[], int &n) {
     char full_path[PATH_MAX_LEN];
     struct stat file_info;
     int m;
-    printf("FILENAME %s\n", filename);
     construct_full_path(full_path, path, filename);
     if(stat(full_path, &file_info) == -1) {
         printf("ERROR: File %s does not exist", filename);

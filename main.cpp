@@ -28,7 +28,7 @@ struct button_data{
 } button[10], right_click_button[10], left_pane_headers[5], right_pane_headers[5];
 
 void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float y, button_data &button, int i) {
-    float btnSize = WINDOW_W / 7;
+    float btnSize = WINDOW_W / 8;
     button.shape.setSize(sf::Vector2f(btnSize, 50));
     button.shape.setPosition(sf::Vector2f(x+btnSize*(i-1), y)); 
     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
@@ -43,7 +43,7 @@ void SetupButton(sf::RenderWindow& window, const sf::Font& font, float x, float 
     sf::Text button_text(font, button.name, FONT_SIZE);
     std::string f_shortcut;
     f_shortcut += "F";
-    f_shortcut += static_cast<char>('0'+i);
+    f_shortcut += (char)'0'+i;
     sf::Text shortcut(font, f_shortcut, 15);
     shortcut.setPosition(sf::Vector2f(x+btnSize*(i-1)+3, y+2));
     if(isHovering){
@@ -172,7 +172,6 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
         char* item_size = convert_size(files[file_idx].size);
         char item_size_arr[32];
         strncpy(item_size_arr, item_size, SIZE_MAX_LEN);
-        // printf("item size %s", item_size);
 
         const sf::Texture texture(ext_path);
         sf::RectangleShape icon_rect;
@@ -210,7 +209,7 @@ void DrawPane(sf::RenderWindow& window, const char* path_display, float x, float
     }
     if (size > VISIBLE_ITEMS) {
         float sb_width = 10.0f;
-        float track_h = PANE_H - (LIST_START_Y - y-6)*2;
+        float track_h = PANE_H - (LIST_START_Y - y - 6);
         float track_x = x + PANE_W - sb_width;
         float track_y = LIST_START_Y-6.0f;
 
@@ -251,7 +250,7 @@ int main() {
     // Construiesc path-ul pana in folderul Documents
     const char *temp="\\Documents", *user_profile = getenv("USERPROFILE");
     if(!user_profile) {
-        printf("Eroare: Nu am putut gasi user profile");
+        printf("Eroare: Nu am putut gasi user profile\n");
         return 0;
     }
     strcpy(documents_path, user_profile);
@@ -279,6 +278,7 @@ int main() {
     button[5].name = "New Folder";
     button[6].name = "New File";
     button[7].name = "Search";
+    button[8].name = "Open path";
     right_click_button[1].name = "Copy";
     right_click_button[2].name = "Move";
     right_click_button[3].name = "Delete";
@@ -286,6 +286,7 @@ int main() {
     right_click_button[5].name = "New Folder";
     right_click_button[6].name = "New File";
     right_click_button[7].name = "Search";
+    button[8].name = "Open path";
     left_pane_headers[1].name = "Nume";
     left_pane_headers[2].name = "Data";
     left_pane_headers[3].name = "Tip";
@@ -310,7 +311,7 @@ int main() {
     int current_it;
 
     sf::RectangleShape input_bar;
-    input_bar.setSize(sf::Vector2f(300.0f, 40.0f));
+    input_bar.setSize(sf::Vector2f(PANE_W, 40.0f));
     input_bar.setPosition(sf::Vector2f(0, WINDOW_H-90)); 
     input_bar.setFillColor(sf::Color(220, 220, 220));
     input_bar.setOutlineThickness(2.0f);
@@ -407,6 +408,14 @@ int main() {
                         active_action = 7;
                         continue;
                     }
+                    else if (keypressed->code == sf::Keyboard::Key::F8) {
+                        input_active = true; 
+                        if(!index_side)
+                            input.assign(path);
+                        else input.assign(documents_path);
+                        active_action = 8;
+                        continue;
+                    }
                     if (index_side == 0) {
                         std::set<int>::iterator it;
                         int file_offset = 0;
@@ -423,14 +432,14 @@ int main() {
                                 if (created)
                                     file_offset++;
                             }
-                            else if (keypressed->code == sf::Keyboard::Key::F3) {
+                            else if (keypressed->code == sf::Keyboard::Key::F3 || keypressed->code==sf::Keyboard::Key::Delete) {
                                 file_delete(path,files_left[*it-file_offset].name, files_left, size_left);
                                 save_with_metadata(path, files_left, size_left);
                                 file_offset++;
                             }
                             else if (keypressed->code == sf::Keyboard::Key::F4){
                                 if(idx.size() > 1)
-                                    printf("Nu puteti redenumi mai mult de un fisier.");
+                                    printf("Nu puteti redenumi mai mult de un fisier.\n");
                                 else {
                                     input_active = true; 
                                     input.assign(files_left[*it].name);
@@ -456,7 +465,7 @@ int main() {
                                 if (created)
                                     file_offset++;
                             }
-                            else if (keypressed->code == sf::Keyboard::Key::F3) {
+                            else if (keypressed->code == sf::Keyboard::Key::F3 || keypressed->code==sf::Keyboard::Key::Delete) {
                                 file_delete(documents_path, files_right[*it-file_offset].name, files_right, size_right);
                                 save_with_metadata(documents_path, files_right, size_right);
                                 file_offset++;
@@ -734,6 +743,18 @@ int main() {
                                 std::swap(search_result, files_right);
                                 std::swap(size_right, size_search);
                             }
+                            else if(active_action == 8) {
+                                struct stat file_info;
+                                if(stat(new_name, &file_info)) 
+                                    printf("Path invalid.\n");
+                                else if(S_ISDIR(file_info.st_mode)) {
+                                    idx.clear();
+                                    strcpy(documents_path, new_name);
+                                    save_with_metadata(documents_path, files_right, size_right);
+                                }
+                                else open_file(new_name, new_name);
+                                continue;
+                            }
                         }
                         else {
                             if (active_action == 4) {
@@ -761,6 +782,18 @@ int main() {
                                 std::swap(search_result, files_left);
                                 std::swap(size_left, size_search);
                             }
+                            else if(active_action == 8) {
+                                struct stat file_info;
+                                if(stat(new_name, &file_info)) 
+                                    printf("Path invalid.\n");
+                                else if(S_ISDIR(file_info.st_mode)) {
+                                    idx.clear();
+                                    strcpy(path, new_name);
+                                    save_with_metadata(path, files_left, size_left);
+                                }
+                                else open_file(new_name, new_name);
+                                continue;
+                            }
                         }
                         input = "";
                     }
@@ -775,7 +808,13 @@ int main() {
                 if (scroll->wheel == sf::Mouse::Wheel::Vertical) {
                     int *current_scroll;
                     int current_size;
-                    if (!index_side) {
+                    sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                    int scroll_side = index_side;
+                    if(mousePos.x >= LEFT_PANE_X && mousePos.x < LEFT_PANE_X + PANE_W && mousePos.y >= LEFT_PANE_Y && mousePos.y < LEFT_PANE_Y + PANE_H)
+                        scroll_side = 0;
+                    else if(mousePos.x >= RIGHT_PANE_X && mousePos.x < RIGHT_PANE_X + PANE_W && mousePos.y >= RIGHT_PANE_Y && mousePos.y < RIGHT_PANE_Y + PANE_H-40)
+                        scroll_side = 1;
+                    if (!scroll_side) {
                         current_scroll = &scroll_left;
                         current_size = size_left;
                     }
@@ -826,7 +865,7 @@ int main() {
         PaneHeader(window, RIGHT_PANE_X + size_offset, PADDING + 30, PANE_W - size_offset, 25, right_pane_headers[4]);
 
 
-        for (int i = 1;i <= 7;++i) {
+        for (int i = 1;i <= 8;++i) {
             SetupButton(window, font, 0,  WINDOW_H-50, button[i], i);
             if(right_click)
                 RightClickButton(window, font, right_click_x, right_click_y, right_click_button[i], i);
@@ -851,6 +890,12 @@ int main() {
                         active_action = 7;
                         continue;
                     }
+                    else if(i == 8) {
+                        input_active = true; 
+                        input.assign(path);
+                        active_action = 8;
+                        continue;
+                    }
                     std::set<int>::iterator it;
                     int file_offset = 0;
                     for (it = idx.begin(); it != idx.end(); it++) {
@@ -873,7 +918,7 @@ int main() {
                         }
                         else if (i == 4){
                             if(idx.size() > 1)
-                                printf("Nu puteti redenumi mai mult de un fisier.");
+                                printf("Nu puteti redenumi mai mult de un fisier.\n");
                             else {
                                 input_active = true; 
                                 input.assign(files_left[*it].name);
@@ -901,6 +946,12 @@ int main() {
                         input_active = true; 
                         input = "";
                         active_action = 7;
+                        continue;
+                    }
+                    else if(i == 8) {
+                        input_active = true; 
+                        input.assign(documents_path);
+                        active_action = 8;
                         continue;
                     }
                     std::set<int>::iterator it;

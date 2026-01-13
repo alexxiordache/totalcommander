@@ -8,6 +8,7 @@ const int VISIBLE_ITEMS = 25;
 const unsigned int FONT_SIZE = 20;
 const unsigned int NAME_MAX_LEN = 18, SIZE_MAX_LEN = 11;
 char icon_path[PATH_MAX_LEN];
+char new_name[PATH_MAX_LEN];
 bool index_side = 0; // 0 - stanga, 1 - dreapta
 sf::Font font;
 std::set<int> idx;
@@ -266,7 +267,6 @@ int main() {
     sf::VideoMode video_mode;
     video_mode.size = sf::Vector2u((unsigned int)WINDOW_W, (unsigned int)WINDOW_H);
     sf::RenderWindow window(video_mode, "My Commander", sf::Style::Close);
-    //window.setFramerateLimit(60);
     if (!font.openFromFile("Segoe UI.ttf")) { 
         printf("Eroare: Nu am gasit 'Segoe UI.ttf'!.\n");
         return 0;
@@ -286,7 +286,7 @@ int main() {
     right_click_button[5].name = "New Folder";
     right_click_button[6].name = "New File";
     right_click_button[7].name = "Search";
-    button[8].name = "Open path";
+    right_click_button[8].name = "Open path";
     left_pane_headers[1].name = "Nume";
     left_pane_headers[2].name = "Data";
     left_pane_headers[3].name = "Tip";
@@ -307,7 +307,6 @@ int main() {
     std::string input = "";      
     bool input_active = false;        
     int active_action = 0;
-    char new_name[105];
     int current_it;
 
     sf::RectangleShape input_bar;
@@ -471,10 +470,14 @@ int main() {
                                 file_offset++;
                             }
                             else if (keypressed->code == sf::Keyboard::Key::F4) {
-                                input_active = true; 
-                                input.assign(files_right[*it].name);
-                                active_action = 4; 
-                                current_it = *it;
+                                if(idx.size() > 1)
+                                    printf("Nu puteti redenumi mai mult de un fisier.\n");
+                                else {
+                                    input_active = true; 
+                                    input.assign(files_right[*it].name);
+                                    active_action = 4; 
+                                    current_it = *it;
+                                }
                             }
                         }
                     }
@@ -975,10 +978,14 @@ int main() {
                             file_offset++;
                         }
                         else if (i == 4) {
-                            input_active = true; 
-                            input.assign(files_right[*it].name);
-                            active_action = 4; 
-                            current_it = *it;
+                            if(idx.size() > 1)
+                                printf("Nu puteti redenumi mai mult de un fisier.\n");
+                            else {
+                                input_active = true; 
+                                input.assign(files_right[*it].name);
+                                active_action = 4; 
+                                current_it = *it;
+                            }
                         }
                     }
                 }
